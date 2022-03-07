@@ -1,0 +1,6 @@
+@startuml
+	Ale --> Simo: Ciao
+	Ale <-- Simo: Ciao a te
+	Simo -> Marco: Come va?
+	Simo <- Marco: Bene grazie, e tu?
+@enduml

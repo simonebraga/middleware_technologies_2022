@@ -9,3 +9,4 @@
 | Documentation (Introduction) | Simone | Not started yet |
 | Documentation (Architecture) | Simone | Work in progress... |
 | Documentation (Architecture &#8594; MPI) | Simone | Not started yet |
+| PlantUML setup | Ale | Waiting for further development |
