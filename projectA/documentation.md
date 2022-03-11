@@ -26,10 +26,29 @@ _Text goes here_
 
 ### Simulation module (MPI)
 
-_Text goes here_
+The idea behind the simulation module is to hide the possible absence of data to the back-end module, which must focus on the processing of the received data without spending computational resources on something else.
+
+The module must then produce and send data in the **exact** same format produced by the data collection module, getting it from a simulated environment instead of the real one.
+
+The simulated environment looks as follows:
+
+//TODO Put picture here
+
+Every dot of the grid is a sensor, in some cases located in the "noise range" of one or more entities (humans or vehicles). The position of every entity and the noise detected by every sensor are recomputed every given time step.
+
+For simplicity
+* The "noise range" is a squared surface.
+* Every entity is in straight motion towards a cardinal point, with a predefined probability of changing direction at every time step.
+* If an entity reaches the region's border, it inverts its direction.
 
 ## Design choices
 
+_Text goes here_
+
 ## Main functionalities
 
+_Text goes here_
+
 ## Conclusions
+
+_Text goes here_
