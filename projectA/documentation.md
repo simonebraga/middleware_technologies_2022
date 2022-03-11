@@ -14,6 +14,8 @@ To better exploit the potential of every technology involved, the distributed sy
 
 * A **simulation module**, based on MPI, whose purpose is to hide to the backend module the lack of data when the use of sensors is not allowed.
 
+//TODO Put picture here
+
 The system is based on the assumption that communication between modules is never guaranteed since the majority of the devices are intrinsically very unstable (we are talking about IoT devices held by common users). As a consequence, the information records exchanged between the front-end and back-end should be kept as light as possible. For a detailed explanation of how every record is composed, see the section about **design choices**.
 
 ### Data processing module (Spark)
