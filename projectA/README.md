@@ -7,6 +7,6 @@
 | What | Who | How much |
 |:-|:-:|:-|
 | Documentation (Introduction) || Not started yet |
-| Documentation (Architecture) | Simone | Work in progress... |
-| Documentation (Design choiches) | Marco | Work in progress... |
+| Documentation (Architecture) | Simone | Completed! |
+| Documentation (Design choices) | Marco, Simone | Work in progress... |
 | PlantUML setup | Ale | Waiting for further development |
