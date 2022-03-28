@@ -26,6 +26,8 @@ The system is based on the assumption that communication between modules is neve
 
 This module consists of a Spark distributed cluster that analyzes the noise data received by other modules. The data is ingested from TCP sockets, then it's processed by the Spark engine that computes some metrics and stores the result.
 
+Roughly speaking, the cluster handles the "Data cleaning and enrichment" functionalities in the Map task, and the "Data analysis" ones in the Reduce task.
+
 ### Data collection module (Contiki-NG)
 
 The only purpose of this module is to collect noise data in an energy-efficient way, perform a very light pre-processing and send the data to the back-end module.
