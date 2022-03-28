@@ -9,7 +9,7 @@
 | Documentation (Introduction) || Not started yet |
 | Documentation (Architecture) | Simone | Completed! |
 | Documentation (Design choices) | Marco, Simone | Completed! |
-| Documentation (Main functionalities) | Simone | Work in progress... |
+| Documentation (Main functionalities) | Simone | Completed! |
 | Documentation (Conclusions) || Not started yet |
 | Spark || Not started yet |
 | Contiki-NG | Marco | Work in progress... |
