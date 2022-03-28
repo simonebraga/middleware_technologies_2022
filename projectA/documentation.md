@@ -91,7 +91,34 @@ An alternative we discussed for the simulation was Akka, as we thought of repres
 
 ## Main functionalities
 
-_Text goes here_
+Since the application is built to work at runtime with a continuous stream of incoming data, the following diagram will represent the path of each record produced by the sensors. The overall view of the application is given by multiple records that fulfill this path in parallel.
+
+<p align="center">
+  <img width=90% src="./resources/sequence_diagram.png" />
+</p>
+
+### Step 1 (Pre-processing)
+
+Sensors detect the noise value at a given frequency. For every new reading, the average of the last 6 is recomputed with two possible outcomes:
+1. The average is under a given threshold $k$ &#8594; The record `<coordinates, average>` is sent to the nearest router device.
+
+2. The average is over the threshold &#8594; The record `<coordinates, [last_6_readings]>` is sent to the nearest router device.
+
+### Step 2 (Data collection)
+
+The router device collects the reads of all the near IoT devices and periodically forwards them to the back-end through the regular Internet.
+
+### Step 3 (Data cleaning and enrichment)
+
+The back-end receives the data from the router devices and directs them to the Spark Streaming engine.
+
+### Step 4 (Data analysis)
+
+Some predefined metrics are periodically recomputed and made available to the back-end user.
+
+At every moment the back-end user can ask for the metrics that are displayed in real-time.
+
+Notice that the steps in case the values come from the simulation are the same.
 
 ## Conclusions
 
