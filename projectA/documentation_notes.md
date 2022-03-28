@@ -14,6 +14,27 @@ The process of associating each noise record with the nearest POI can be schemat
   <img width=75% src="./resources/spark_process.png" />
 </p>
 
+
+The Spark cluster is composed of two main steps: map and reduce.
+
+#### Map
+	We get as input a set of tuples in the form `<position, noise value>`.
+	It roughly correspond to the "Data cleaning and enrichment" section of the specification. We:
+  * clean the data (discarding invalid data, i.e. below zero)
+  * associate each measurement with its nearest POI, using the position.
+  
+  We so transform data in the form `<POI, noise value>`. The POI is the reduction key.
+
+#### Reduce
+	It roughly corresponds to the "Data analysis" section of the specification. Spark handles the shuffling: assuming we are acting on the set of measurement for a single POI, we:
+  * Compute the relevant averages (hourly, daily, and weekly)
+  * Compute the streak duration
+  * Keep the top 10
+  
+  These tasks can be performed using [Spark structured streaming](https://spark.apache.org/docs/latest/structured-streaming-programming-guide.html). Structured streaming seems to be more powerful than regular Spark straming.
+  
+  Spark structured streaming naturally tags each event with a timestamp. Data coming from sensors can be nicely decorated with *event time* (time attached to the source). In this way, we can access the timestamp of the noise level mesurement, and this time is preserved in case of congestion: if the measurement is delivered late, the timestamp will still be correctly recognized and processed. However, **it is still open** (effectively as a TODO) how can we exploit this with the simulation data (since there isn't a straightforward correspondance with "clock time").
+  
 ### Data collection module (Contiki-NG)
 
 ### Simulation module (MPI)
