@@ -26,7 +26,11 @@ The system is based on the assumption that communication between modules is neve
 
 This module consists of a Spark distributed cluster that analyzes the noise data received by other modules. The data is ingested from TCP sockets, then it's processed by the Spark engine that computes some metrics and stores the result.
 
-Roughly speaking, the cluster handles the "Data cleaning and enrichment" functionalities in the Map task, and the "Data analysis" ones in the Reduce task.
+Roughly speaking, the map-reduce paradigm implements the following functionalities:
+
+* **Map** &#8594; Data cleaning and enrinchment
+
+* **Reduce** &#8594; Data analysis
 
 ### Data collection module (Contiki-NG)
 
@@ -49,38 +53,41 @@ The module must then produce and send data in the **exact** same format produced
 
 ## Design choices
 
-In this section, the main design choices are explained for each part of the project architecture and the communication among them.
+This section contains an explanation of what led to the choice of every involved technology, as long as a short summary of the reasoning for which other technologies have been excluded.
 
-**Sensors**
+### Spark for data processing
 
-The sensors are implemented in C using Contiki-NG and simulated through the Cooja simulator. In order to simulate Contiki-NG devices, the OS
-comes with a simulation tool called Coojam which is able to run Contiki-NG apps on simulated hardware devices. Moreover, the simulation is able to
-reproduce the wireless behaviour of such devices which is suitable for the IoT devices interaction.
-In this project implementation, every device is simulated through a  COOJA mote, and the proximity is reached by the wireless connectivity offered
-by the simulator.
+The back-end module is a Java application developed using Spark. Since there are no guarantees on the amount of incoming data, it was necessary to build a flexible system capable of handling two extreme cases:
 
-**Simulations**
+* When a lot of data is incoming.  
+Spark is a framework that offers very efficient map-reduce functions to perform optimized calculations on big quantities of data, it is used in the application to create statistics efficiently, even when the amount of incoming values becomes huge.
 
-The simulations are implemented in C using MPI, a specification used for hihg-performance distributed computed scenarios, that has among its main
-use cases the simulation of population dynamics. To do so each agent (person / vehicle) is simulated in its own process, run in parallel to the
-others. Similarly, each zone has its own process, which calculates the sum (MPI_SUM) of the noise produced and sends the result to the backend.
+* When almost no data is received.  
+Spark is good since it performs calculations only when there is something in input, not wasting computational performance in an almost "idle" situation.
 
-**Backend**
+**Why not Kafka?**
 
-The backend platform is a Java application developed using Spark.
-Spark is a framework that offers (among other things) very efficient map-reduce functions to perform optimized calculations on big quantities of data;
-using it we can create statistics (such as average noise per week) for each zone very efficiently, even when the amount of values to use becomes huge.
+Another alternative we thought about for the back-end was Kafka. The use of Spark would have been anyway necessary for the statistical calculations, and Kafka would end up being used just as a communication interface between the sensors and the back-end. We discarded this option because it'd be a waste to use Kafka just for its communication and storage capabilities.
 
-**MPI over AKKA**
+### Contiki-NG for data collection
 
-For the simulations we decided to use MPI. An alternative we discussed about was akka, as we thought of representing each person/vehicle as an actor, 
-but as the simulation grow in size, akka wouldn't be able to keep up with the growing need of computational power (scale-up would be very limited).
-Instead we opted for MPI which is much faster and more optimized toward these kind of implementations (populations dynamics is amoung its use cases in
-real life scenarios), and needs less space to run (C instead of Java).
+The sensors are implemented in C using Contiki-NG and simulated using Cooja, which is able to reproduce the wireless behavior of such devices, which is suitable for the IoT devices' interaction. Moreover, Contiki-NG is able to perform light pre-processing on the collected data with a small performance impact.
 
-**SPARK over KAFKA as backend**
+The output record of each sensor is structured as follows:
 
-Another alternative we thought about was the use of Kafka as the backend for our system: each POI'd be represented as a topic, and it'd contain his average noise level for hour/day/week, and the recordings of the last week. To make up for the lack of raw computational power offered instead by some other technologies, we thought about using some very simple mathematical optimization. In the end, we discarded this option because we thought that it'd be a waste to use kafka just a 'storing mean' in an application of this type, where we don't use any of its strong points, and opted instead for SPARK, much more suited and optimized for operations on big data, and that provides much cleaner calculations (the mathematical tricks we thought about would, in the long run, create a not negligible error).
+<p align="center">
+  <img width=60% src="./resources/record.png" />
+</p>
+
+Unlike in our early analysis of the system, it is not necessary to keep the notion of "sensor" over time. The entities of this module are meaningful only until they build the record with the detection. We can then forget about them and accept another read as completely uncorrelated with the previous one. This implies a light implementation also for the "router" nodes, whose only purpose is to redirect the collected data to the back-end.
+
+### MPI for simulation
+
+The simulations are implemented in C using MPI, a specification for high-performance distributed computing scenarios, that has among its main use cases the simulation of population dynamics. The use of MPI allows splitting the workload. Moreover, since the simulation is completely decoupled from the back-end, it can be outsourced to specialized machines with hardware optimized for this type of calculation.
+
+**Why not Akka?**
+
+An alternative we discussed for the simulation was Akka, as we thought of representing each entity capable of producing noise (people, vehicles) as an actor, but as the simulation grows in size, Akka wouldn't be able to keep up with the growing need of computational power. Instead, we opted for MPI which is much faster and needs fewer resources to run (no need for the JVM).
 
 ## Main functionalities
 

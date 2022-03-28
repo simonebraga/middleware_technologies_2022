@@ -1,7 +1,5 @@
 This document contains notions that shall not be part of the documentation but are very good topics for the presentation. It also contains some notes on what should be put inside the final documentation.
 
-## Introduction
-
 ## Architecture
 
 ### Data processing module (Spark)
@@ -18,25 +16,25 @@ The process of associating each noise record with the nearest POI can be schemat
 The Spark cluster is composed of two main steps: map and reduce.
 
 #### Map
-	We get as input a set of tuples in the form `<position, noise value>`.
-	It roughly correspond to the "Data cleaning and enrichment" section of the specification. We:
-  * clean the data (discarding invalid data, i.e. below zero)
-  * associate each measurement with its nearest POI, using the position.
-  
-  We so transform data in the form `<POI, noise value>`. The POI is the reduction key.
+
+We get as input a set of tuples in the form `<position, noise value>`.
+It roughly correspond to the "Data cleaning and enrichment" section of the specification. We:
+* clean the data (discarding invalid data, i.e. below zero)
+* associate each measurement with its nearest POI, using the position.
+
+We so transform data in the form `<POI, noise value>`. The POI is the reduction key.
 
 #### Reduce
-	It roughly corresponds to the "Data analysis" section of the specification. Spark handles the shuffling: assuming we are acting on the set of measurement for a single POI, we:
-  * Compute the relevant averages (hourly, daily, and weekly)
-  * Compute the streak duration
-  * Keep the top 10
-  
-  These tasks can be performed using [Spark structured streaming](https://spark.apache.org/docs/latest/structured-streaming-programming-guide.html). Structured streaming seems to be more powerful than regular Spark straming.
-  
-  Spark structured streaming naturally tags each event with a timestamp. Data coming from sensors can be nicely decorated with *event time* (time attached to the source). In this way, we can access the timestamp of the noise level mesurement, and this time is preserved in case of congestion: if the measurement is delivered late, the timestamp will still be correctly recognized and processed. However, **it is still open** (effectively as a TODO) how can we exploit this with the simulation data (since there isn't a straightforward correspondance with "clock time").
-  
-### Data collection module (Contiki-NG)
 
+It roughly corresponds to the "Data analysis" section of the specification. Spark handles the shuffling: assuming we are acting on the set of measurement for a single POI, we:
+* Compute the relevant averages (hourly, daily, and weekly)
+* Compute the streak duration
+* Keep the top 10
+
+These tasks can be performed using [Spark structured streaming](https://spark.apache.org/docs/latest/structured-streaming-programming-guide.html). Structured streaming seems to be more powerful than regular Spark straming.
+
+Spark structured streaming naturally tags each event with a timestamp. Data coming from sensors can be nicely decorated with *event time* (time attached to the source). In this way, we can access the timestamp of the noise level mesurement, and this time is preserved in case of congestion: if the measurement is delivered late, the timestamp will still be correctly recognized and processed. However, **it is still open** (effectively as a TODO) how can we exploit this with the simulation data (since there isn't a straightforward correspondance with "clock time").
+  
 ### Simulation module (MPI)
 
 The simulated environment looks as follows:
@@ -68,23 +66,3 @@ The last important thing is that the data produced by the simulation is of the *
 1. The Spark module doesn't need to handle differently the simulations and the real world
 2. If the simulation is outsourced, the Spark module can use all its computational power to handle and process the incoming data
 3. The simulation can be performed on a stand-alone module with specialized hardware for MPI
-
-## Design choices
-
-Why **Spark**?  
-The system must be able to handle two extreme cases:
-* When a lot of data is incoming
-* When almost no data is given
-
-Spark is good since it performs calculation only when there is something in input, and yet it is very good in handling a huge amount of data.
-
-**Contiki + Spark** instead of **Akka**:  
-Unlike in our early analysis of the system, it is not necessary to keep the notion of "actor" over time. The entities of the data collection module are meaningful only until they build the record with noise detection and coordinates. We can then forget them and accept another read as completely uncorrelated with the previous one (I don't care if two near reads are from different entities or not).
-
-Why **MPI**?  
-It's the best way to perform a simulation of moving people since we don't need the notion of "entity that moves around"; instead we only need the noise produced by those entities.
-Moreover, the choice of MPI over Node-RED is given by the different computational capacities of the two. The pre-processing of the data that needs to be performed is very basic, so the implementation in Node-RED on IoT devices would have led to higher (useless) power consumption and the need to build the behavior of the single device instead of the system as a whole big entity.
-
-## Main functionalities
-
-## Conclusions
