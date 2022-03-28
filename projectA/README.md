@@ -8,5 +8,9 @@
 |:-|:-:|:-|
 | Documentation (Introduction) || Not started yet |
 | Documentation (Architecture) | Simone | Completed! |
-| Documentation (Design choices) | Marco, Simone | Work in progress... |
-| PlantUML setup | Ale | Waiting for further development |
+| Documentation (Design choices) | Marco, Simone | Completed! |
+| Documentation (Main functionalities) | Simone | Work in progress... |
+| Documentation (Conclusions) || Not started yet |
+| Spark || Not started yet |
+| Contiki-NG | Marco | Work in progress... |
+| MPI | Alessandro, Simone | Work in progress... |
