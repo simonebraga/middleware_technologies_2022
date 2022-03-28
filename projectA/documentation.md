@@ -73,7 +73,7 @@ Another alternative we thought about for the back-end was Kafka. The use of Spar
 
 The sensors are implemented in C using Contiki-NG and simulated using Cooja, which is able to reproduce the wireless behavior of such devices, which is suitable for the IoT devices' interaction. Moreover, Contiki-NG is able to perform light pre-processing on the collected data with a small performance impact.
 
-The output record of each sensor is structured as follows:
+The output record of each sensor is structured as follows (depending on the outcome of the pre-processing):
 
 <p align="center">
   <img width=60% src="./resources/record.png" />
