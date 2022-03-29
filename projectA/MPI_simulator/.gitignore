@@ -1,0 +1,4 @@
+#Ignore the compiled program
+#NOTE: maybe this is not the most robust approach
+
+mpi_simulator
