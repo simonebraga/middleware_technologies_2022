@@ -34,7 +34,7 @@ It roughly corresponds to the "Data analysis" section of the specification. Spar
 These tasks can be performed using [Spark structured streaming](https://spark.apache.org/docs/latest/structured-streaming-programming-guide.html). Structured streaming seems to be more powerful than regular Spark straming.
 
 Spark structured streaming naturally tags each event with a timestamp. Data coming from sensors can be nicely decorated with *event time* (time attached to the source). In this way, we can access the timestamp of the noise level mesurement, and this time is preserved in case of congestion: if the measurement is delivered late, the timestamp will still be correctly recognized and processed. However, **it is still open** (effectively as a TODO) how can we exploit this with the simulation data (since there isn't a straightforward correspondance with "clock time").
-  
+
 ### Simulation module (MPI)
 
 The simulated environment looks as follows:
@@ -66,3 +66,77 @@ The last important thing is that the data produced by the simulation is of the *
 1. The Spark module doesn't need to handle differently the simulations and the real world
 2. If the simulation is outsourced, the Spark module can use all its computational power to handle and process the incoming data
 3. The simulation can be performed on a stand-alone module with specialized hardware for MPI
+
+#### Usage
+
+In the `MPI_simulator` directory, the module can be compiled with `make` (a Makefile is provided).
+
+##### Command line parameters
+
+The simulation parameters are provided via command line.
+**NOTE**: For now, the program only accepts integer arguments, and arguments are required.
+
+The program accepts the following command line options:
+
+
+| Short options | Meaning                          | Example  |
+|  -----------  |   ---------------------------    |   -----  |
+| `P`           | Number of people                 | `-P 100` |
+| `V`           | Number of vehicles               | `-V 10`  |
+| `W`           | Width of the region (in meters)  | `-W 500` |
+| `L`           | Length of the region (in meters) | `-L 300` |
+| `t`           | Time step (in seconds)           | `-t 1`   |
+
+
+
+| Long options | Meaning                                 | Example   |
+|--------------|-----------------------------------------|-----------|
+| `Np`         | Noise produced by every person (in dB)  | `--Np 2`  |
+| `Nv`         | Noise produced by every vehicle (in dB) | `--Nv 10` |
+| `Dp`         | "Radius" affected by a person           | `--Dp 2`  |
+| `Dv`         | "Radius" affected by a vehicle          | `--Dv 10` |
+| `Vp`         | Speed of a person (in m/s)              | `--Vp 1`  |
+| `Vv`         | Speed of a vehicle (in m/s)             | `--Vv 14` |
+| `db`         | Activate debug prints                   | `--db`    |
+
+To print all the debug prints, the `db` option must be given first.
+
+The following long option aliases are also supported:
+
+| Long alias          | Short option |
+|---------------------|--------------|
+| `n-of-people`       | `P`          |
+| `n-of-vehicles`     | `V`          |
+| `width-of-region`   | `W`          |
+| `length-of-region`  | `L`          |
+| `noise-per-person`  | `Np`         |
+| `moise-per-vehicle` | `Nv`         |
+| `radius-of-person`  | `Dp`         |
+| `radius-of-vehicle` | `Dv`         |
+| `speed-of-person`   | `Vp`         |
+| `speed-of-vehicle`  | `Vv`         |
+| `debug`             | `db`         |
+
+The "radius" of a person vehicle is intended as half the side of a square area. For instance, in the picture:
+
+```text
++-----+ -
+|     | |
+|     | |
+|  P  | |7
+|     | |
+|     | |
++-----+ -
+
+|-----|
+   7
+```
+
+The `P` represents a person, and the radius is 3 (calculated as `floor(side/2)`).
+
+##### Convenience scripts
+
+Three scripts are provided to quickly run the program:
+  * `quickrun.sh` executes the simulation "clean", multithreaded
+  * `debug.sh` executes the simulation multithreaded, with the debug flag
+  * `single-thread` executes the simulation as a normal program, single-threaded and with the debug flag
