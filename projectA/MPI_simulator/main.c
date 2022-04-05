@@ -2,11 +2,25 @@
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #define N_PARAMETERS 11
 
+struct agent {
+  int x;
+  int y;
+};
+
 int missing_parameter(int parameters[]);
 void initialize_parameters(int parameters[]);
+void do_simulation(int parameters[], int vehicle_quota, int people_quota,
+                   int time_interval, int myRank);
+void initialize_random_coordinates(struct agent *agents, int agents_quota,
+                                   int max_width, int max_length);
+void advance_person(struct agent *agent, int parameters[]);
+void advance_vehicle(struct agent *agent, int parameters[]);
+void print_region(struct agent *people, struct agent *vehicles,
+                  int parameters[]);
 
 enum parameter { P, V, W, L, Np, Nv, Dp, Dv, Vp, Vv, t };
 
@@ -174,6 +188,19 @@ int main(int argc, char *argv[]) {
 
   printf("Hi, I'm process %d out of %d.\n", myRank, nProcesses);
 
+  // number of vehicles each process will track
+  int vehicle_quota = parameters[V] / nProcesses;
+
+  // number of people each process will track
+  int people_quota = parameters[P] / nProcesses;
+
+  // make sure each process have a copy
+  MPI_Bcast(parameters, N_PARAMETERS, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&vehicle_quota, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&people_quota, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+  do_simulation(parameters, vehicle_quota, people_quota, parameters[t], myRank);
+
   MPI_Finalize();
 
   return 0;
@@ -200,4 +227,116 @@ int missing_parameter(int parameters[]) {
     }
   }
   return 0;
+}
+
+/* Initializes the vector of agents (people or vehicles) with random initial
+ * coordinates in the range [0, max_length - 1] (for the x), [0, max_width - 1]
+ * (for the y) */
+
+void initialize_random_coordinates(struct agent *agents, int agents_quota,
+                                   int max_width, int max_length) {
+  for (int i = 0; i < agents_quota; i++) {
+    agents[i].x = rand() % max_length;
+    agents[i].y = rand() % max_width;
+  }
+  return;
+}
+
+/* Performs the simulation, in an unbound loop */
+
+void do_simulation(int parameters[], int vehicle_quota, int people_quota,
+                   int time_interval, int myRank) {
+  struct agent people[people_quota];
+  struct agent vehicles[vehicle_quota];
+
+  initialize_random_coordinates(people, people_quota, parameters[W],
+                                parameters[L]);
+  initialize_random_coordinates(vehicles, vehicle_quota, parameters[W],
+                                parameters[L]);
+
+  while (1) { // for each time step
+    for (int i = 0; i < people_quota; i++) {
+      advance_person(people + i, parameters);
+    }
+    for (int i = 0; i < vehicle_quota; i++) {
+      advance_vehicle(vehicles + i, parameters);
+    }
+    if (debugFlag && myRank == 0)
+      print_region(people, vehicles, parameters);
+    sleep(time_interval);
+  }
+}
+
+/* Advance a person of a step, calculated as Vp * t */
+
+void advance_person(struct agent *agent, int parameters[]) {
+  if (rand() % 2 == 0) {
+    if (rand() % 2 == 0) {
+      agent->x = (agent->x + (parameters[Vp] * parameters[t]) + parameters[L]) %
+                 parameters[L];
+    } else {
+      agent->x = (agent->x - (parameters[Vp] * parameters[t]) + parameters[L]) %
+                 parameters[L];
+    }
+  } else {
+    if (rand() % 2 == 0) {
+      agent->y = (agent->y + (parameters[Vp] * parameters[t]) + parameters[W]) %
+                 parameters[W];
+    } else {
+      agent->y = (agent->y - (parameters[Vp] * parameters[t]) + parameters[W]) %
+                 parameters[W];
+    }
+  }
+}
+
+/* Advance a vehicle of a step, calculated as Vv * t */
+
+void advance_vehicle(struct agent *agent, int parameters[]) {
+  if (rand() % 2 == 0) {
+    if (rand() % 2 == 0) {
+      agent->x = (agent->x + (parameters[Vv] * parameters[t]) + parameters[L]) %
+                 parameters[L];
+    } else {
+      agent->x = (agent->x - (parameters[Vv] * parameters[t]) + parameters[L]) %
+                 parameters[L];
+    }
+  } else {
+    if (rand() % 2 == 0) {
+      agent->y = (agent->y + (parameters[Vv] * parameters[t]) + parameters[W]) %
+                 parameters[W];
+    } else {
+      agent->y = (agent->y - (parameters[Vv] * parameters[t]) + parameters[W]) %
+                 parameters[W];
+    }
+  }
+}
+
+/* Temporary way to visualize the simulation */
+
+void print_region(struct agent *people, struct agent *vehicles,
+                  int parameters[]) {
+  for (int y = 0; y < parameters[W]; ++y) {
+    for (int x = 0; x < parameters[L]; ++x) {
+      int found_agent = 0;
+      for (int p = 0; p < parameters[P]; p++) {
+        if (people[p].x == x && people[p].y == y) {
+          found_agent = 1;
+          putchar('p');
+        }
+      }
+      for (int v = 0; v < parameters[V]; v++) {
+        if (vehicles[v].x == x && vehicles[v].y == y) {
+          found_agent = 1;
+          putchar('V');
+        }
+      }
+      if (!found_agent)
+        putchar(' ');
+    }
+    puts("|");
+  }
+  for (int x = 0; x < parameters[L]; x++) {
+    putchar('-');
+  }
+  putchar('\n');
 }
