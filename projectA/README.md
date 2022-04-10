@@ -11,6 +11,6 @@
 | Documentation (Design choices) | Marco, Simone | Completed! |
 | Documentation (Main functionalities) | Simone | Completed! |
 | Documentation (Conclusions) || Not started yet |
-| Spark || Not started yet |
+| Spark | Simone | Work in progress... |
 | Contiki-NG | Marco | Work in progress... |
-| MPI | Alessandro, Simone | Work in progress... |
+| MPI | Alessandro | Work in progress... |
