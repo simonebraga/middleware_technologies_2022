@@ -1,6 +1,6 @@
 package it.polimi.middleware.spark;
 
-import it.polimi.middleware.spark.utils.LogUtils;
+import it.polimi.middleware.spark.utils.MiscUtils;
 import it.polimi.middleware.spark.utils.ParseFunctions;
 import org.apache.spark.SparkConf;
 import org.apache.spark.streaming.Durations;
@@ -12,7 +12,7 @@ public class StreamingProcessor {
 
     public static void main(String[] args) {
 
-        LogUtils.setLogLevel();
+        MiscUtils.setLogLevel();
 
         // If not specified otherwise, use local instance of Spark with all available threads
         final String master = args.length > 0 ? args[0] : "local[*]";
@@ -30,16 +30,19 @@ public class StreamingProcessor {
                 .union(sc.socketTextStream("localhost", 9996));
 
         // Create a DStream that uses "collector" object as a source
-        final JavaDStream<Tuple2<String, Float>> values = collector
-                .window(Durations.seconds(10), Durations.seconds(5))
+        //TODO Check if window's duration is ok
+        final JavaDStream<Tuple2<String, Float>> mean = collector
+                .window(Durations.seconds(30), Durations.seconds(5))
                 .map(ParseFunctions::parseInput)
+                .filter(ParseFunctions::cleanInput)
                 .map(ParseFunctions::computePOI)
-                .map(ParseFunctions::extendTuple)
-                .reduce(ParseFunctions::reduceOverPOI)
+                .map(ParseFunctions::rebuildTuple)
+                .mapToPair(q -> new Tuple2<>(q._1, q._2))
+                .reduceByKey(ParseFunctions::reduceOverPOI)
                 .map(ParseFunctions::computeMean);
 
         //TODO Implement a fancy print for the computed metrics
-        values.print();
+        mean.print();
 
         // Start the computation
         sc.start();
