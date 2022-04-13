@@ -1,6 +1,6 @@
 # Project A
 
-[Click here](https://github.com/simonebraga/middleware_projectA/blob/main/documentation.md) to view the documentation
+[Click here](documentation.md) to view the documentation
 
 ### Currently working on...
 
