@@ -1,5 +1,6 @@
 package it.polimi.middleware.spark;
 
+import it.polimi.middleware.spark.processes.DataCleaningEnrichment;
 import it.polimi.middleware.spark.utils.MiscUtils;
 import it.polimi.middleware.spark.utils.ParseFunctions;
 import org.apache.spark.SparkConf;
@@ -31,18 +32,21 @@ public class StreamingProcessor {
 
         // Create a DStream that uses "collector" object as a source
         //TODO Check if window's duration is ok
-        final JavaDStream<Tuple2<String, Float>> mean = collector
+        final JavaDStream<Tuple2<String, Double>> cleanRDD = collector
                 .window(Durations.seconds(30), Durations.seconds(5))
-                .map(ParseFunctions::parseInput)
-                .filter(ParseFunctions::cleanInput)
-                .map(ParseFunctions::computePOI)
-                .map(ParseFunctions::rebuildTuple)
+                .map(DataCleaningEnrichment::parseInput)
+                .filter(DataCleaningEnrichment::cleanInput)
+                .map(DataCleaningEnrichment::aggregateReads)
+                .filter(DataCleaningEnrichment::cleanAggregatedInput)
+                .map(DataCleaningEnrichment::computePOI);
+
+                /*.map(ParseFunctions::rebuildTuple)
                 .mapToPair(q -> new Tuple2<>(q._1, q._2))
                 .reduceByKey(ParseFunctions::reduceOverPOI)
-                .map(ParseFunctions::computeMean);
+                .map(ParseFunctions::computeMean);*/
 
         //TODO Implement a fancy print for the computed metrics
-        mean.print();
+        cleanRDD.print();
 
         // Start the computation
         sc.start();
