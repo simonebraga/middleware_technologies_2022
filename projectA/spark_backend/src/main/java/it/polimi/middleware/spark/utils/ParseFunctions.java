@@ -1,44 +1,10 @@
 package it.polimi.middleware.spark.utils;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import scala.Tuple2;
 
-// Serialized in the following form: {"coords":"10;24","val":12.142}
-class Record {
-    public String coords;
-    public Float val;
-}
+//TODO Move all the methods of this class in the "processes" package
 
-// This class contains the functions that allow the computation for the requested metrics
 public class ParseFunctions {
-
-    // Parse the input string to actual values
-    // INPUT: input_record
-    // OUTPUT: <coords, value>
-    public static Tuple2<String, Float> parseInput(String in) {
-        try {
-            Record rec = MiscUtils.jacksonMapper.readValue(in, Record.class);
-            return new Tuple2<>(rec.coords, rec.val);
-        } catch (JsonProcessingException e) {
-            System.err.println("WARNING: Wrong format for input string. Record set to null.");
-            return new Tuple2<>(null, null);
-        }
-    }
-
-    // Clean the RDD of null tuples
-    // INPUT: <coords, value>
-    // OUTPUT: boolean_outcome
-    public static boolean cleanInput(Tuple2<String, Float> in) {
-        return (in._1 != null) && (in._2 != null);
-    }
-
-    // Convert from coordinates to POI using information about the map
-    // INPUT: <coords, value>
-    // OUTPUT: <poi_id, value>
-    public static Tuple2<String, Float> computePOI(Tuple2<String, Float> in) {
-        //TODO For now, it uses the coordinates as an ID
-        return new Tuple2<>(in._1, in._2);
-    }
 
     // Rebuild every tuple to allow application of "reduction by key"
     // INPUT: <poi_id, value>
