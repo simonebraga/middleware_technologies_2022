@@ -4,36 +4,39 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define N_PARAMETERS 11
+#define N_INT_PARAMETERS 4
+#define N_FLOAT_PARAMETERS 7
+
+// general TODO: why sometimes people don't move?
 
 struct agent {
-  int x;
-  int y;
+  float x;
+  float y;
 };
 
-int missing_parameter(int parameters[]);
-void initialize_parameters(int parameters[]);
-void do_simulation(int parameters[], int vehicle_quota, int people_quota,
-                   int time_interval, int myRank);
-void initialize_random_coordinates(struct agent *agents, int agents_quota,
-                                   int max_width, int max_length);
-void advance_person(struct agent *agent, int parameters[]);
-void advance_vehicle(struct agent *agent, int parameters[]);
-void print_region(struct agent *people, struct agent *vehicles,
-                  int parameters[]);
+int missing_parameter();
+void initialize_parameters();
+void do_simulation(int vehicle_quota, int people_quota, int myRank);
+void initialize_random_coordinates(struct agent *agents, int agents_quota);
+void advance_person(struct agent *agent);
+void advance_vehicle(struct agent *agent);
+void print_region(struct agent *people, struct agent *vehicles);
 
-enum parameter { P, V, W, L, Np, Nv, Dp, Dv, Vp, Vv, t };
-
+enum int_parameter_idx { P, V, W, L };
+enum float_parameter_idx { Np, Nv, Dp, Dv, Vp, Vv, t };
+enum direction { UP, DOWN, LEFT, RIGHT };
 static int debugFlag = 0;
+
+/*simulation parameters
+  Having them as global variables is ugly,
+  but it allows to differenciate between integer and real parameters */
+int int_parameters[N_INT_PARAMETERS];
+float float_parameters[N_FLOAT_PARAMETERS];
 
 int main(int argc, char *argv[]) {
   int myRank;
   int nProcesses;
 
-  // simulation parameters
-  // NOTE: THEY ARE SIMPLE INTS FOR NOW!
-  //  int P, V, W, L, Np, Nv, Dp, Dv, Vp, Vv, t;
-  int parameters[N_PARAMETERS];
 
   static const struct option longOptions[] = {
       // debug option
@@ -73,7 +76,7 @@ int main(int argc, char *argv[]) {
   int option_index = 0;
 
   // initialize parameters vector
-  initialize_parameters(parameters);
+  initialize_parameters();
 
   MPI_Init(&argc, &argv);
   MPI_Comm_size(MPI_COMM_WORLD, &nProcesses);
@@ -88,69 +91,69 @@ int main(int argc, char *argv[]) {
       }
       break;
     case 'P':
-      parameters[P] = atoi(optarg);
+      int_parameters[P] = atoi(optarg);
       if (debugFlag && myRank == 0) {
-        printf("Number of people: %d\n", parameters[P]);
+        printf("Number of people: %d\n", int_parameters[P]);
       }
       break;
     case 'V':
-      parameters[V] = atoi(optarg);
+      int_parameters[V] = atoi(optarg);
       if (debugFlag && myRank == 0) {
-        printf("Number of vehicles: %d\n", parameters[V]);
+        printf("Number of vehicles: %d\n", int_parameters[V]);
       }
       break;
     case 'W':
-      parameters[W] = atoi(optarg);
+      int_parameters[W] = atoi(optarg);
       if (debugFlag && myRank == 0) {
-        printf("Width of the region: %d m\n", parameters[W]);
+        printf("Width of the region: %d m\n", int_parameters[W]);
       }
       break;
     case 'L':
-      parameters[L] = atoi(optarg);
+      int_parameters[L] = atoi(optarg);
       if (debugFlag && myRank == 0) {
-        printf("Length of the region: %d m\n", parameters[L]);
+        printf("Length of the region: %d m\n", int_parameters[L]);
       }
       break;
     case 'n':
-      parameters[Np] = atoi(optarg);
+      float_parameters[Np] = atof(optarg);
       if (debugFlag && myRank == 0) {
-        printf("Noise per person: %d dB\n", parameters[Np]);
+        printf("Noise per person: %f dB\n", float_parameters[Np]);
       }
       break;
     case 'N':
-      parameters[Nv] = atoi(optarg);
+      float_parameters[Nv] = atof(optarg);
       if (debugFlag && myRank == 0) {
-        printf("Noise per vehicle: %d dB\n", parameters[Nv]);
+        printf("Noise per vehicle: %f dB\n", float_parameters[Nv]);
       }
       break;
     case 'd':
-      parameters[Dp] = atoi(optarg);
+      float_parameters[Dp] = atof(optarg);
       if (debugFlag && myRank == 0) {
-        printf("Radius of a person: %d m\n", parameters[Dp]);
+        printf("Radius of a person: %f m\n", float_parameters[Dp]);
       }
       break;
     case 'D':
-      parameters[Dv] = atoi(optarg);
+      float_parameters[Dv] = atof(optarg);
       if (debugFlag && myRank == 0) {
-        printf("Radius of a vehicle: %d m\n", parameters[Dv]);
+        printf("Radius of a vehicle: %f m\n", float_parameters[Dv]);
       }
       break;
     case 'u':
-      parameters[Vp] = atoi(optarg);
+      float_parameters[Vp] = atof(optarg);
       if (debugFlag && myRank == 0) {
-        printf("Speed of a person: %d m/s\n", parameters[Vp]);
+        printf("Speed of a person: %f m/s\n", float_parameters[Vp]);
       }
       break;
     case 'U':
-      parameters[Vv] = atoi(optarg);
+      float_parameters[Vv] = atof(optarg);
       if (debugFlag && myRank == 0) {
-        printf("Speed of a vehicle: %d m/s\n", parameters[Vv]);
+        printf("Speed of a vehicle: %f m/s\n", float_parameters[Vv]);
       }
       break;
     case 't':
-      parameters[t] = atoi(optarg);
+      float_parameters[t] = atof(optarg);
       if (debugFlag && myRank == 0) {
-        printf("Time step: %d s\n", parameters[t]);
+        printf("Time step: %f s\n", float_parameters[t]);
       }
       break;
     case '?':
@@ -174,7 +177,7 @@ int main(int argc, char *argv[]) {
 
   // check if all parameters have been specified
   int missing_param;
-  if ((missing_param = missing_parameter(parameters))) {
+  if ((missing_param = missing_parameter())) {
     if (myRank == 0) {
       printf("Error! Parameter number %d is missing\n",
              missing_param - 1); // see the function
@@ -189,29 +192,35 @@ int main(int argc, char *argv[]) {
   printf("Hi, I'm process %d out of %d.\n", myRank, nProcesses);
 
   // number of vehicles each process will track
-  int vehicle_quota = parameters[V] / nProcesses;
+  // TODO: check divisibility!
+  int vehicle_quota = int_parameters[V] / nProcesses;
 
   // number of people each process will track
-  int people_quota = parameters[P] / nProcesses;
+  // TODO: check divisibility!
+  int people_quota = int_parameters[P] / nProcesses;
 
-  // make sure each process have a copy
-  MPI_Bcast(parameters, N_PARAMETERS, MPI_INT, 0, MPI_COMM_WORLD);
+  // make sure each process have a copy of the parameters
+  MPI_Bcast(int_parameters, N_INT_PARAMETERS, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(float_parameters, N_FLOAT_PARAMETERS, MPI_FLOAT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&vehicle_quota, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&people_quota, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-  do_simulation(parameters, vehicle_quota, people_quota, parameters[t], myRank);
+  do_simulation(vehicle_quota, people_quota, myRank);
 
   MPI_Finalize();
 
   return 0;
 }
 
-/* To initialize the parameters vector to 0.
+/* To initialize the parameters vectors to 0.
    It must be called before parsing the command line options */
 
-void initialize_parameters(int parameters[]) {
-  for (int i = 0; i < N_PARAMETERS; i++) {
-    parameters[i] = 0;
+void initialize_parameters() {
+  for (int i = 0; i < N_INT_PARAMETERS; i++) {
+    int_parameters[i] = 0;
+  }
+  for (int i = 0; i < N_FLOAT_PARAMETERS; i++) {
+    float_parameters[i] = 0.0;
   }
   return;
 }
@@ -220,10 +229,15 @@ void initialize_parameters(int parameters[]) {
    found, it is returned the index (as specified in the parameters enum. If
    everything is fine, it returns 0 */
 
-int missing_parameter(int parameters[]) {
-  for (int i = 0; i < N_PARAMETERS; i++) {
-    if (parameters[i] == 0) {
+int missing_parameter() {
+  for (int i = 0; i < N_INT_PARAMETERS; i++) {
+    if (int_parameters[i] == 0) {
       return i + 1; // returning i doesn't signal error if i == 0
+    }
+  }
+  for (int i = 0; i < N_FLOAT_PARAMETERS; i++) {
+    if (float_parameters[i] == 0) {
+      return i + N_INT_PARAMETERS + 1; // returning i doesn't signal error if i == 0
     }
   }
   return 0;
@@ -231,100 +245,116 @@ int missing_parameter(int parameters[]) {
 
 /* Initializes the vector of agents (people or vehicles) with random initial
  * coordinates in the range [0, max_length - 1] (for the x), [0, max_width - 1]
- * (for the y) */
+ * (for the y). For simplicity, the initial coordinates are integers */
 
-void initialize_random_coordinates(struct agent *agents, int agents_quota,
-                                   int max_width, int max_length) {
+void initialize_random_coordinates(struct agent *agents, int agents_quota) {
   for (int i = 0; i < agents_quota; i++) {
-    agents[i].x = rand() % max_length;
-    agents[i].y = rand() % max_width;
+    agents[i].x = rand() % int_parameters[L];
+    agents[i].y = rand() % int_parameters[W];
   }
   return;
 }
 
 /* Performs the simulation, in an unbound loop */
 
-void do_simulation(int parameters[], int vehicle_quota, int people_quota,
-                   int time_interval, int myRank) {
+void do_simulation(int vehicle_quota, int people_quota, int myRank) {
   struct agent people[people_quota];
   struct agent vehicles[vehicle_quota];
 
-  initialize_random_coordinates(people, people_quota, parameters[W],
-                                parameters[L]);
-  initialize_random_coordinates(vehicles, vehicle_quota, parameters[W],
-                                parameters[L]);
+  initialize_random_coordinates(people, people_quota);
+  initialize_random_coordinates(vehicles, vehicle_quota);
 
   while (1) { // for each time step
     for (int i = 0; i < people_quota; i++) {
-      advance_person(people + i, parameters);
+      advance_person(people + i);
     }
     for (int i = 0; i < vehicle_quota; i++) {
-      advance_vehicle(vehicles + i, parameters);
+      advance_vehicle(vehicles + i);
     }
     if (debugFlag && myRank == 0)
-      print_region(people, vehicles, parameters);
-    sleep(time_interval);
+      print_region(people, vehicles);
+    sleep(float_parameters[t]);
   }
 }
 
-/* Advance a person of a step, calculated as Vp * t */
+/* Advance a person of a step, calculated as Vp * t
+   WARNING: To speed up calculations, the check on boundaries is not cyclic,
+   i.e. it assumes that an agent cannot do more than a single "wrap" per turn,
+   i.e. the velocity is minor, in modulus, of both the region dimensions */
 
-void advance_person(struct agent *agent, int parameters[]) {
-  if (rand() % 2 == 0) {
-    if (rand() % 2 == 0) {
-      agent->x = (agent->x + (parameters[Vp] * parameters[t]) + parameters[L]) %
-                 parameters[L];
-    } else {
-      agent->x = (agent->x - (parameters[Vp] * parameters[t]) + parameters[L]) %
-                 parameters[L];
-    }
-  } else {
-    if (rand() % 2 == 0) {
-      agent->y = (agent->y + (parameters[Vp] * parameters[t]) + parameters[W]) %
-                 parameters[W];
-    } else {
-      agent->y = (agent->y - (parameters[Vp] * parameters[t]) + parameters[W]) %
-                 parameters[W];
-    }
+void advance_person(struct agent *agent) {
+  enum direction dir = rand() % 4;
+
+  switch (dir) {
+  case RIGHT:
+    agent->x = agent->x + (float_parameters[Vp] * float_parameters[t]);
+    if (agent->x > int_parameters[L])
+      agent->x -= int_parameters[L];
+    break;
+  case LEFT:
+    agent->x = agent->x - (float_parameters[Vp] * float_parameters[t]);
+    if (agent->x < 0)
+      agent->x += int_parameters[L];
+    break;
+  case UP:
+    agent->y = agent->y + (float_parameters[Vp] * float_parameters[t]);
+    if (agent->y > int_parameters[W])
+      agent->y -= int_parameters[W];
+  case DOWN:
+    agent->y = agent->y - (float_parameters[Vp] * float_parameters[t]);
+    if (agent->y < 0)
+      agent->y += int_parameters[W];
+    break;
   }
 }
 
-/* Advance a vehicle of a step, calculated as Vv * t */
+/* Advance a vehicle of a step, calculated as Vv * t
+   WARNING: To speed up calculations, the check on boundaries is not cyclic,
+   i.e. it assumes that an agent cannot do more than a single "wrap" per turn,
+   i.e. the velocity is minor, in modulus, of both the region dimensions */
 
-void advance_vehicle(struct agent *agent, int parameters[]) {
-  if (rand() % 2 == 0) {
-    if (rand() % 2 == 0) {
-      agent->x = (agent->x + (parameters[Vv] * parameters[t]) + parameters[L]) %
-                 parameters[L];
-    } else {
-      agent->x = (agent->x - (parameters[Vv] * parameters[t]) + parameters[L]) %
-                 parameters[L];
-    }
-  } else {
-    if (rand() % 2 == 0) {
-      agent->y = (agent->y + (parameters[Vv] * parameters[t]) + parameters[W]) %
-                 parameters[W];
-    } else {
-      agent->y = (agent->y - (parameters[Vv] * parameters[t]) + parameters[W]) %
-                 parameters[W];
-    }
+void advance_vehicle(struct agent *agent) {
+  enum direction dir = rand() % 4;
+
+  switch (dir){
+  case RIGHT:
+    agent->x = agent->x + (float_parameters[Vv] * float_parameters[t]);
+    if(agent->x > int_parameters[L])
+      agent->x -= int_parameters[L];
+    break;
+  case LEFT:
+    agent->x = agent->x - (float_parameters[Vv] * float_parameters[t]);
+    if(agent->x < 0)
+      agent->x += int_parameters[L];
+    break;
+  case UP:
+    agent->y = agent->y + (float_parameters[Vv] * float_parameters[t]);
+    if(agent->y > int_parameters[W])
+      agent->y -= int_parameters[W];
+    break;
+  case DOWN:
+    agent->y = agent->y - (float_parameters[Vv] * float_parameters[t]);
+    if(agent->y < 0)
+      agent->y += int_parameters[W];
+    break;
   }
 }
 
 /* Temporary way to visualize the simulation */
 
-void print_region(struct agent *people, struct agent *vehicles,
-                  int parameters[]) {
-  for (int y = 0; y < parameters[W]; ++y) {
-    for (int x = 0; x < parameters[L]; ++x) {
+void print_region(struct agent *people, struct agent *vehicles) {
+  for (int y = 0; y < int_parameters[W]; ++y) {
+    for (int x = 0; x < int_parameters[L]; ++x) {
       int found_agent = 0;
-      for (int p = 0; p < parameters[P]; p++) {
+      for (int p = 0; p < int_parameters[P]; p++) {
+	//TODO: fix float comparison
         if (people[p].x == x && people[p].y == y) {
           found_agent = 1;
           putchar('p');
         }
       }
-      for (int v = 0; v < parameters[V]; v++) {
+      for (int v = 0; v < int_parameters[V]; v++) {
+	//TODO: fix float comparison
         if (vehicles[v].x == x && vehicles[v].y == y) {
           found_agent = 1;
           putchar('V');
@@ -335,7 +365,7 @@ void print_region(struct agent *people, struct agent *vehicles,
     }
     puts("|");
   }
-  for (int x = 0; x < parameters[L]; x++) {
+  for (int x = 0; x < int_parameters[L]; x++) {
     putchar('-');
   }
   putchar('\n');
