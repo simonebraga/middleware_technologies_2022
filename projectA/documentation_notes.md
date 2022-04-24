@@ -74,31 +74,31 @@ In the `MPI_simulator` directory, the module can be compiled with `make` (a Make
 ##### Command line parameters
 
 The simulation parameters are provided via command line.
-**NOTE**: For now, the program only accepts integer arguments, and arguments are required.
+**NOTE**: For now, the program accepts integer and float arguments, and arguments are required.
 
 The program accepts the following command line options:
 
 
-| Short options | Meaning                          | Example  |
-|  -----------  |   ---------------------------    |   -----  |
-| `P`           | Number of people                 | `-P 100` |
-| `V`           | Number of vehicles               | `-V 10`  |
-| `W`           | Width of the region (in meters)  | `-W 500` |
-| `L`           | Length of the region (in meters) | `-L 300` |
-| `t`           | Time step (in seconds)           | `-t 1`   |
 
 
 
-| Long options | Meaning                                 | Example   |
-|--------------|-----------------------------------------|-----------|
-| `Np`         | Noise produced by every person (in dB)  | `--Np 2`  |
-| `Nv`         | Noise produced by every vehicle (in dB) | `--Nv 10` |
-| `Dp`         | "Radius" affected by a person           | `--Dp 2`  |
-| `Dv`         | "Radius" affected by a vehicle          | `--Dv 10` |
-| `Vp`         | Speed of a person (in m/s)              | `--Vp 1`  |
-| `Vv`         | Speed of a vehicle (in m/s)             | `--Vv 14` |
-| `db`         | Activate debug prints                   | `--db`    |
+| Short options | Meaning                          | Type    | Example  |
+|---------------|----------------------------------|---------|----------|
+| `P`           | Number of people                 | `int`   | `-P 100` |
+| `V`           | Number of vehicles               | `int`   | `-V 10`  |
+| `W`           | Width of the region (in meters)  | `int`   | `-W 500` |
+| `L`           | Length of the region (in meters) | `int`   | `-L 300` |
+| `t`           | Time step (in seconds)           | `float` | `-t 1`   |
 
+| Long options       | Meaning                                                      | Type    | Example                     |
+|--------------------|--------------------------------------------------------------|---------|-----------------------------|
+| `Np`               | Noise produced by every person (in dB)                       | `float` | `--Np 2`                    |
+| `Nv`               | Noise produced by every vehicle (in dB)                      | `float` | `--Nv 10`                   |
+| `Dp`               | Radius of circular area affected by a person                 | `float` | `--Dp 2`                    |
+| `Dv`               | Radius of circular area affected by a vehicle                | `float` | `--Dv 10`                   |
+| `Vp`               | Speed of a person (in m/s)                                   | `float` | `--Vp 1`                    |
+| `Vv`               | Speed of a vehicle (in m/s)                                  | `float` | `--Vv 14`                   |
+| `db`               | Activate debug prints                                        |         | `--db`                      |
 To print all the debug prints, the `db` option must be given first.
 
 The following long option aliases are also supported:
