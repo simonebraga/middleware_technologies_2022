@@ -120,19 +120,24 @@ The following long option aliases are also supported:
 The "radius" of a person vehicle is intended as half the side of a square area. For instance, in the picture:
 
 ```text
-+-----+ -
-|     | |
-|     | |
-|  P  | |7
-|     | |
-|     | |
-+-----+ -
-
-|-----|
-   7
+          ---------
+      ---/         \---
+     /                 \
+   -/                   \-
+  /                       \
+  |                       |
+ /                   r     \
+ |            P-------------|
+ \                         /
+  |                       |
+  \                       /
+   -\                   /-
+     \                 /
+      ---\         /---
+          ---------
 ```
 
-The `P` represents a person, and the radius is 3 (calculated as `floor(side/2)`).
+The `P` represents a person, and the radius is `r` (calculated as euclidean distance).
 
 ##### Convenience scripts
 
