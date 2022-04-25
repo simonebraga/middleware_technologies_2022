@@ -1,4 +1,5 @@
 #include <getopt.h>
+#include <math.h>
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,10 +17,16 @@ struct agent {
 
 int missing_parameter();
 void initialize_parameters();
-void do_simulation(int vehicle_quota, int people_quota, int myRank);
+void do_simulation(int vehicles_quota, int people_quota, int myRank);
+void produce_sensor_data(struct agent *people, struct agent *vehicles,
+                         int people_quota, int vehicles_quota);
 void initialize_random_coordinates(struct agent *agents, int agents_quota);
 void advance_person(struct agent *agent);
 void advance_vehicle(struct agent *agent);
+float distance(struct agent *agent, int x_sensor, int y_sensor);
+float intensity(float decibels);
+float intensity_at_distance(float intensity, float distance);
+float decibels(float intensity);
 void print_region(struct agent *people, struct agent *vehicles);
 
 enum int_parameter_idx { P, V, W, L };
@@ -33,10 +40,13 @@ static int debugFlag = 0;
 int int_parameters[N_INT_PARAMETERS];
 float float_parameters[N_FLOAT_PARAMETERS];
 
+float intensity_ref = 0.000000000001;
+float intensity_person;
+float intensity_vehicle;
+
 int main(int argc, char *argv[]) {
   int myRank;
   int nProcesses;
-
 
   static const struct option longOptions[] = {
       // debug option
@@ -193,22 +203,32 @@ int main(int argc, char *argv[]) {
 
   // number of vehicles each process will track
   // TODO: check divisibility!
-  int vehicle_quota = int_parameters[V] / nProcesses;
+  int vehicles_quota = int_parameters[V] / nProcesses;
 
   // number of people each process will track
   // TODO: check divisibility!
   int people_quota = int_parameters[P] / nProcesses;
 
+  intensity_person = intensity(float_parameters[Np]);
+  intensity_vehicle = intensity(float_parameters[Nv]);
+
   // make sure each process have a copy of the parameters
   MPI_Bcast(int_parameters, N_INT_PARAMETERS, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(float_parameters, N_FLOAT_PARAMETERS, MPI_FLOAT, 0, MPI_COMM_WORLD);
-  MPI_Bcast(&vehicle_quota, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&vehicles_quota, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&people_quota, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&intensity_person, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&intensity_vehicle, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
 
-  do_simulation(vehicle_quota, people_quota, myRank);
-
+  // Can be used as tests for the noise level calculations
+  /*
+  printf("Sum of two noises of intensity 10 dB is %f dB\n",
+         decibels(intensity(10) * 2));
+  printf("Noise of intensity 10 dB at distance doubled is %f dB\n",
+         decibels(intensity_at_distance(intensity(10), 2)));
+  */
+  do_simulation(vehicles_quota, people_quota, myRank);
   MPI_Finalize();
-
   return 0;
 }
 
@@ -237,7 +257,8 @@ int missing_parameter() {
   }
   for (int i = 0; i < N_FLOAT_PARAMETERS; i++) {
     if (float_parameters[i] == 0) {
-      return i + N_INT_PARAMETERS + 1; // returning i doesn't signal error if i == 0
+      // returning i doesn't signal error if i == 0
+      return i + N_INT_PARAMETERS + 1;
     }
   }
   return 0;
@@ -257,22 +278,23 @@ void initialize_random_coordinates(struct agent *agents, int agents_quota) {
 
 /* Performs the simulation, in an unbound loop */
 
-void do_simulation(int vehicle_quota, int people_quota, int myRank) {
+void do_simulation(int vehicles_quota, int people_quota, int myRank) {
   struct agent people[people_quota];
-  struct agent vehicles[vehicle_quota];
+  struct agent vehicles[vehicles_quota];
 
   initialize_random_coordinates(people, people_quota);
-  initialize_random_coordinates(vehicles, vehicle_quota);
+  initialize_random_coordinates(vehicles, vehicles_quota);
 
   while (1) { // for each time step
     for (int i = 0; i < people_quota; i++) {
       advance_person(people + i);
     }
-    for (int i = 0; i < vehicle_quota; i++) {
+    for (int i = 0; i < vehicles_quota; i++) {
       advance_vehicle(vehicles + i);
     }
     if (debugFlag && myRank == 0)
       print_region(people, vehicles);
+    produce_sensor_data(people, vehicles, people_quota, vehicles_quota);
     sleep(float_parameters[t]);
   }
 }
@@ -316,25 +338,25 @@ void advance_person(struct agent *agent) {
 void advance_vehicle(struct agent *agent) {
   enum direction dir = rand() % 4;
 
-  switch (dir){
+  switch (dir) {
   case RIGHT:
     agent->x = agent->x + (float_parameters[Vv] * float_parameters[t]);
-    if(agent->x > int_parameters[L])
+    if (agent->x > int_parameters[L])
       agent->x -= int_parameters[L];
     break;
   case LEFT:
     agent->x = agent->x - (float_parameters[Vv] * float_parameters[t]);
-    if(agent->x < 0)
+    if (agent->x < 0)
       agent->x += int_parameters[L];
     break;
   case UP:
     agent->y = agent->y + (float_parameters[Vv] * float_parameters[t]);
-    if(agent->y > int_parameters[W])
+    if (agent->y > int_parameters[W])
       agent->y -= int_parameters[W];
     break;
   case DOWN:
     agent->y = agent->y - (float_parameters[Vv] * float_parameters[t]);
-    if(agent->y < 0)
+    if (agent->y < 0)
       agent->y += int_parameters[W];
     break;
   }
@@ -347,14 +369,14 @@ void print_region(struct agent *people, struct agent *vehicles) {
     for (int x = 0; x < int_parameters[L]; ++x) {
       int found_agent = 0;
       for (int p = 0; p < int_parameters[P]; p++) {
-	//TODO: fix float comparison
+        // TODO: fix float comparison
         if (people[p].x == x && people[p].y == y) {
           found_agent = 1;
           putchar('p');
         }
       }
       for (int v = 0; v < int_parameters[V]; v++) {
-	//TODO: fix float comparison
+        // TODO: fix float comparison
         if (vehicles[v].x == x && vehicles[v].y == y) {
           found_agent = 1;
           putchar('V');
@@ -369,4 +391,64 @@ void print_region(struct agent *people, struct agent *vehicles) {
     putchar('-');
   }
   putchar('\n');
+}
+
+/* Returns the distance of an agent from the sensor
+   placed at coordinates (x_sensor, y_sensor) */
+float distance(struct agent *agent, int x_sensor, int y_sensor) {
+  float delta_x = agent->x - x_sensor;
+  float delta_y = agent->y - y_sensor;
+  return sqrt(delta_x * delta_x + delta_y * delta_y);
+}
+
+/* Converts the intensity level of a sound from dB to W */
+float intensity(float decibels) {
+  return powf(10, decibels / 10)
+      // technically, this should be a part of calculation,
+      // but if we simplify it everywhere there's no problem
+      //       * intensity_ref
+      ;
+}
+
+/* Calculates the attenuation given by the distance from source to sensor */
+float intensity_at_distance(float intensity, float distance) {
+  return intensity / (distance * distance);
+}
+
+/* Converts the intenisty level of a sound from W to dB */
+float decibels(float intensity) {
+  return 10 * log10f(intensity
+                     // technically, this should be a part of calculation,
+                     // but if we simplify it everywhere there's no problem
+                     //		     /intensity_ref
+              );
+}
+
+/* Produce the noise data detected by each simulated sensor,
+  placed at integer coordinates in the area */
+void produce_sensor_data(struct agent *people, struct agent *vehicles,
+                         int people_quota, int vehicles_quota) {
+  for (int x_sensor = 0; x_sensor <= int_parameters[L]; x_sensor++) {
+    for (int y_sensor = 0; y_sensor <= int_parameters[W]; y_sensor++) {
+      float dist;
+      float intensity_sensor = 0.0;
+
+      for (int p_idx = 0; p_idx < people_quota; p_idx++) {
+        dist = distance(people + p_idx, x_sensor, y_sensor);
+        if (dist <= float_parameters[Dp]) {
+          intensity_sensor += intensity_at_distance(intensity_person, dist);
+        }
+      }
+      for (int v_idx = 0; v_idx < vehicles_quota; v_idx++) {
+        dist = distance(vehicles + v_idx, x_sensor, y_sensor);
+        if (dist <= float_parameters[Dv]) {
+          intensity_sensor += intensity_at_distance(intensity_vehicle, dist);
+        }
+      }
+
+      float noise_sensor = decibels(intensity_sensor);
+      // TODO: send noise_sensor to coordinator process
+      // TODO: and then to the Spark cluster
+    }
+  }
 }
