@@ -54,3 +54,12 @@ Both the folders contain useful scripts to run the environment with the correct 
 <br/>
 
 * `X1-stop-local.sh` kill the Spark cluster. Stop the Spark streming application before running this.
+
+### Send data
+
+You can act like end-user applications opening a socket connection with the backend with the following command:
+
+`nc localhost 9999`
+
+Then send well-formed strings from the command line.  
+(You can open multiple instances if neeeded)
