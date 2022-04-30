@@ -12,5 +12,6 @@
 | Documentation (Main functionalities) | Simone | Completed! |
 | Documentation (Conclusions) || Not started yet |
 | Spark | Simone | Work in progress... |
+| Kafka | Simone | Work in progress... |
 | Contiki-NG | Marco | Work in progress... |
 | MPI | Alessandro | Work in progress... |
