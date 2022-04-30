@@ -12,4 +12,4 @@ mpirun --use-hwthread-cpus \
        --Dv 10 \
        --Vp 1 \
        --Vv 14 \
-       -t 1
+       -t 10

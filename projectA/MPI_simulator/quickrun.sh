@@ -13,4 +13,4 @@ mpirun --use-hwthread-cpus mpi_simulator \
        --Dv 10 \
        --Vp 1 \
        --Vv 14 \
-       -t 1
+       -t 10
