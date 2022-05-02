@@ -79,9 +79,6 @@ The simulation parameters are provided via command line.
 The program accepts the following command line options:
 
 
-
-
-
 | Short options | Meaning                          | Type    | Example  |
 |---------------|----------------------------------|---------|----------|
 | `P`           | Number of people                 | `int`   | `-P 100` |
@@ -89,6 +86,8 @@ The program accepts the following command line options:
 | `W`           | Width of the region (in meters)  | `int`   | `-W 500` |
 | `L`           | Length of the region (in meters) | `int`   | `-L 300` |
 | `t`           | Time step (in seconds)           | `float` | `-t 1`   |
+
+
 
 | Long options       | Meaning                                                      | Type    | Example                     |
 |--------------------|--------------------------------------------------------------|---------|-----------------------------|
@@ -99,6 +98,9 @@ The program accepts the following command line options:
 | `Vp`               | Speed of a person (in m/s)                                   | `float` | `--Vp 1`                    |
 | `Vv`               | Speed of a vehicle (in m/s)                                  | `float` | `--Vv 14`                   |
 | `db`               | Activate debug prints                                        |         | `--db`                      |
+| `origin-latitude`  | Latitude coordinate (in decimal degrees) of the area origin  | `float` | `--origin-latitude 45.890`  |
+| `origin-longitude` | Longitude coordinate (in decimal degrees) of the area origin | `float` | `--origin-longitude 9.0804` |
+
 To print all the debug prints, the `db` option must be given first.
 
 The following long option aliases are also supported:

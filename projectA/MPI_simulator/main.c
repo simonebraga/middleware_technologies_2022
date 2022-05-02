@@ -6,7 +6,11 @@
 #include <unistd.h>
 
 #define N_INT_PARAMETERS 4
-#define N_FLOAT_PARAMETERS 7
+#define N_FLOAT_PARAMETERS 9
+#define DEGREES_TO_METERS_MULTIPLIER 111120
+#define METERS_TO_DEGREES_MULTIPLIER 0.000008999
+#define RECORD_BUFFER_SIZE 100
+#define PI 3.14159265
 
 // general TODO: why sometimes people don't move?
 
@@ -28,9 +32,17 @@ float intensity(float decibels);
 float intensity_at_distance(float intensity, float distance);
 float decibels(float intensity);
 void print_region(struct agent *people, struct agent *vehicles);
+void populate_new_record(char *record, float x_coordinate, float y_coordinate, float noise);
+float lat_coordinate(float origin_coordinate, float offset_meters);
+float lon_coordinate(float origin_coordinate, float offset_meters,
+                     float latitude);
+float secf(float angle);
+float degrees(float radians);
+float radians(float degrees);
+
 
 enum int_parameter_idx { P, V, W, L };
-enum float_parameter_idx { Np, Nv, Dp, Dv, Vp, Vv, t };
+enum float_parameter_idx { Np, Nv, Dp, Dv, Vp, Vv, t, lat, lon };
 enum direction { UP, DOWN, LEFT, RIGHT };
 static int debugFlag = 0;
 
@@ -80,6 +92,10 @@ int main(int argc, char *argv[]) {
       {"Vv", required_argument, NULL, 'U'}, // alias
 
       {"time-step", required_argument, NULL, 't'},
+
+      {"origin-latitude", required_argument, NULL, 'o'},
+      {"origin-longitude", required_argument, NULL, 'O'},
+      
       {0, 0, 0, 0}};
 
   int ret_char; // it is an int and not a char for safety reasons
@@ -164,6 +180,18 @@ int main(int argc, char *argv[]) {
       float_parameters[t] = atof(optarg);
       if (debugFlag && myRank == 0) {
         printf("Time step: %f s\n", float_parameters[t]);
+      }
+      break;
+    case 'o':
+      float_parameters[lat] = atof(optarg);
+      if (myRank == 0 && debugFlag) {
+	printf("Latitude of area origin: %f N\n", float_parameters[lat]);
+      }
+      break;
+    case 'O':
+      float_parameters[lon] = atof(optarg);
+      if(myRank == 0 && debugFlag) {
+	printf("Longitude of area origin: %f E\n", float_parameters[lon]);
       }
       break;
     case '?':
@@ -463,7 +491,41 @@ void produce_sensor_data(struct agent *people, struct agent *vehicles,
                noise_sensor, intensity_sensor);
       }
       // TODO: send noise_sensor to coordinator process
-      // TODO: and then to the Spark cluster
+      // TODO DOING: and then to the Spark cluster
+      char record[RECORD_BUFFER_SIZE];
+      float y_coordinate = lat_coordinate(float_parameters[lat], y_sensor);
+      float x_coordinate = lon_coordinate(float_parameters[lon], x_sensor, y_coordinate);
+      populate_new_record(record, x_coordinate, y_coordinate, noise_sensor);
+      if(debugFlag){
+	printf("TEST: %s\n", record);
+      }
+      // TODO: it prints -infinite
     }
   }
+}
+
+void populate_new_record(char *record, float x_coordinate, float y_coordinate, float noise) {
+  sprintf(record, "{\"x\":%f,\"y\":%f,\"val\":[%f]}", x_coordinate, y_coordinate, noise);
+}
+
+float lat_coordinate(float origin_coordinate, float offset_meters) {
+  return origin_coordinate + offset_meters * METERS_TO_DEGREES_MULTIPLIER;
+}
+
+float lon_coordinate(float origin_coordinate, float offset_meters,
+                     float latitude) {
+  float meters_per_lon_degree =
+      (DEGREES_TO_METERS_MULTIPLIER / secf(radians(latitude)));
+  float lon_degrees_per_meter = 1 / meters_per_lon_degree;
+  return origin_coordinate + offset_meters * lon_degrees_per_meter;
+}
+
+float secf(float angle) {
+  return 1 / cosf(angle);
+}
+
+float degree(float radians) { return radians * 180 / PI; }
+
+float radians(float degrees) {
+  return degrees * PI / 180;  
 }
