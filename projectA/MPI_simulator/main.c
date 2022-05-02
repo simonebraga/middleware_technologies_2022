@@ -412,7 +412,7 @@ float intensity(float decibels) {
 
 /* Calculates the attenuation given by the distance from source to sensor */
 float intensity_at_distance(float intensity, float distance) {
-  return intensity / (distance * distance);
+  return intensity / ((distance + 1) * (distance + 1));
 }
 
 /* Converts the intenisty level of a sound from W to dB */
@@ -437,16 +437,31 @@ void produce_sensor_data(struct agent *people, struct agent *vehicles,
         dist = distance(people + p_idx, x_sensor, y_sensor);
         if (dist <= float_parameters[Dp]) {
           intensity_sensor += intensity_at_distance(intensity_person, dist);
+	  //diagnostic (may be removed or guarded)
+	  if(debugFlag && !isfinite(intensity_sensor))
+	    printf("ERROR: generating intensity_sensor is %f\n",
+		   intensity_sensor);
         }
       }
       for (int v_idx = 0; v_idx < vehicles_quota; v_idx++) {
         dist = distance(vehicles + v_idx, x_sensor, y_sensor);
         if (dist <= float_parameters[Dv]) {
           intensity_sensor += intensity_at_distance(intensity_vehicle, dist);
+	  //diagnostic (may be removed or guarded)
+	  if(debugFlag && !isfinite(intensity_sensor))
+	    printf("ERROR: generating intensity_sensor is %f\n",
+		   intensity_sensor);
         }
       }
 
       float noise_sensor = decibels(intensity_sensor);
+      if (debugFlag &&
+          (noise_sensor == INFINITY)) { // not the best, but we need to exclude
+                                        // -INFINITY, which is ok
+        printf("ERROR: noise_sensor is %f, and generating intensity_sensor is "
+               "%f\n",
+               noise_sensor, intensity_sensor);
+      }
       // TODO: send noise_sensor to coordinator process
       // TODO: and then to the Spark cluster
     }
