@@ -1,8 +1,12 @@
+#include <arpa/inet.h>
+#include <errno.h>
 #include <getopt.h>
 #include <math.h>
 #include <mpi.h>
+#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #define N_INT_PARAMETERS 4
@@ -11,6 +15,8 @@
 #define METERS_TO_DEGREES_MULTIPLIER 0.000008999
 #define RECORD_BUFFER_SIZE 100
 #define PI 3.14159265
+#define KAFKA_BRIDGE_DEFAULT_PORT 9999
+#define KAFKA_BRIDGE_DEFAULT_ADDR "127.0.0.1"
 
 // general TODO: why sometimes people don't move?
 
@@ -23,7 +29,8 @@ int missing_parameter();
 void initialize_parameters();
 void do_simulation(int vehicles_quota, int people_quota, int myRank);
 void produce_sensor_data(struct agent *people, struct agent *vehicles,
-                         int people_quota, int vehicles_quota);
+                         int people_quota, int vehicles_quota, int socket_fd,
+                         struct sockaddr_in server_addr);
 void initialize_random_coordinates(struct agent *agents, int agents_quota);
 void advance_person(struct agent *agent);
 void advance_vehicle(struct agent *agent);
@@ -32,14 +39,14 @@ float intensity(float decibels);
 float intensity_at_distance(float intensity, float distance);
 float decibels(float intensity);
 void print_region(struct agent *people, struct agent *vehicles);
-void populate_new_record(char *record, float x_coordinate, float y_coordinate, float noise);
+void populate_new_record(char *record, float x_coordinate, float y_coordinate,
+                         float noise);
 float lat_coordinate(float origin_coordinate, float offset_meters);
 float lon_coordinate(float origin_coordinate, float offset_meters,
                      float latitude);
 float secf(float angle);
 float degrees(float radians);
 float radians(float degrees);
-
 
 enum int_parameter_idx { P, V, W, L };
 enum float_parameter_idx { Np, Nv, Dp, Dv, Vp, Vv, t, lat, lon };
@@ -55,6 +62,10 @@ float float_parameters[N_FLOAT_PARAMETERS];
 float intensity_ref = 0.000000000001;
 float intensity_person;
 float intensity_vehicle;
+
+// network address data
+int kafka_bridge_port;
+char kafka_bridge_address_string[16];
 
 int main(int argc, char *argv[]) {
   int myRank;
@@ -95,7 +106,10 @@ int main(int argc, char *argv[]) {
 
       {"origin-latitude", required_argument, NULL, 'o'},
       {"origin-longitude", required_argument, NULL, 'O'},
-      
+
+      {"kafka-bridge-address", required_argument, NULL, 'a'},
+      {"kafka-bridge-port", required_argument, NULL, 'p'},
+
       {0, 0, 0, 0}};
 
   int ret_char; // it is an int and not a char for safety reasons
@@ -108,7 +122,11 @@ int main(int argc, char *argv[]) {
   MPI_Comm_size(MPI_COMM_WORLD, &nProcesses);
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
-  while ((ret_char = getopt_long(argc, argv, "P:V:W:L:n:N:d:D:u:U:t:",
+  // initialize kafka network address to default values
+  kafka_bridge_port = KAFKA_BRIDGE_DEFAULT_PORT;
+  strcpy(kafka_bridge_address_string, KAFKA_BRIDGE_DEFAULT_ADDR);
+
+  while ((ret_char = getopt_long(argc, argv, "P:V:W:L:n:N:d:D:u:U:t:a:p:",
                                  longOptions, &option_index)) != -1) {
     switch (ret_char) {
     case 0:
@@ -185,13 +203,27 @@ int main(int argc, char *argv[]) {
     case 'o':
       float_parameters[lat] = atof(optarg);
       if (myRank == 0 && debugFlag) {
-	printf("Latitude of area origin: %f N\n", float_parameters[lat]);
+        printf("Latitude of area origin: %f N\n", float_parameters[lat]);
       }
       break;
     case 'O':
       float_parameters[lon] = atof(optarg);
-      if(myRank == 0 && debugFlag) {
-	printf("Longitude of area origin: %f E\n", float_parameters[lon]);
+      if (myRank == 0 && debugFlag) {
+        printf("Longitude of area origin: %f E\n", float_parameters[lon]);
+      }
+      break;
+    case 'a':
+      strcpy(kafka_bridge_address_string, optarg);
+      if (myRank == 0 && debugFlag) {
+        printf("Changing network address of Kafka bridge to %s\n",
+               kafka_bridge_address_string);
+      }
+      break;
+    case 'p':
+      kafka_bridge_port = atoi(optarg);
+      if (myRank == 0 && debugFlag) {
+        printf("Changing network port of Kafka bridge to %d\n",
+               kafka_bridge_port);
       }
       break;
     case '?':
@@ -247,6 +279,9 @@ int main(int argc, char *argv[]) {
   MPI_Bcast(&people_quota, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&intensity_person, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&intensity_vehicle, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(kafka_bridge_address_string, strlen(kafka_bridge_address_string),
+            MPI_CHAR, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&kafka_bridge_port, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
   // Can be used as tests for the noise level calculations
   /*
@@ -313,17 +348,33 @@ void do_simulation(int vehicles_quota, int people_quota, int myRank) {
   initialize_random_coordinates(people, people_quota);
   initialize_random_coordinates(vehicles, vehicles_quota);
 
-  while (1) { // for each time step
-    for (int i = 0; i < people_quota; i++) {
-      advance_person(people + i);
+  struct sockaddr_in kafka_bridge_addr;
+  kafka_bridge_addr.sin_family = AF_INET;
+  kafka_bridge_addr.sin_port = htons(kafka_bridge_port);
+  inet_pton(AF_INET, kafka_bridge_address_string, &kafka_bridge_addr.sin_addr);
+
+  int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+
+  int errConnection = connect(socket_fd, (struct sockaddr *)&kafka_bridge_addr,
+                              sizeof(kafka_bridge_addr));
+  if (errConnection != 0) { // there was an error
+    printf("Unable to connect: errno %d\n", errno);
+    return;
+  } else {
+
+    while (1) { // for each time step
+      for (int i = 0; i < people_quota; i++) {
+        advance_person(people + i);
+      }
+      for (int i = 0; i < vehicles_quota; i++) {
+        advance_vehicle(vehicles + i);
+      }
+      if (debugFlag && myRank == 0)
+        print_region(people, vehicles);
+      produce_sensor_data(people, vehicles, people_quota, vehicles_quota,
+                          socket_fd, kafka_bridge_addr);
+      sleep(float_parameters[t]);
     }
-    for (int i = 0; i < vehicles_quota; i++) {
-      advance_vehicle(vehicles + i);
-    }
-    if (debugFlag && myRank == 0)
-      print_region(people, vehicles);
-    produce_sensor_data(people, vehicles, people_quota, vehicles_quota);
-    sleep(float_parameters[t]);
   }
 }
 
@@ -455,7 +506,8 @@ float decibels(float intensity) {
 /* Produce the noise data detected by each simulated sensor,
   placed at integer coordinates in the area */
 void produce_sensor_data(struct agent *people, struct agent *vehicles,
-                         int people_quota, int vehicles_quota) {
+                         int people_quota, int vehicles_quota, int socket_fd,
+                         struct sockaddr_in server_addr) {
   for (int x_sensor = 0; x_sensor <= int_parameters[L]; x_sensor++) {
     for (int y_sensor = 0; y_sensor <= int_parameters[W]; y_sensor++) {
       float dist;
@@ -465,20 +517,20 @@ void produce_sensor_data(struct agent *people, struct agent *vehicles,
         dist = distance(people + p_idx, x_sensor, y_sensor);
         if (dist <= float_parameters[Dp]) {
           intensity_sensor += intensity_at_distance(intensity_person, dist);
-	  //diagnostic (may be removed or guarded)
-	  if(debugFlag && !isfinite(intensity_sensor))
-	    printf("ERROR: generating intensity_sensor is %f\n",
-		   intensity_sensor);
+          // diagnostic (may be removed or guarded)
+          if (debugFlag && !isfinite(intensity_sensor))
+            printf("ERROR: generating intensity_sensor is %f\n",
+                   intensity_sensor);
         }
       }
       for (int v_idx = 0; v_idx < vehicles_quota; v_idx++) {
         dist = distance(vehicles + v_idx, x_sensor, y_sensor);
         if (dist <= float_parameters[Dv]) {
           intensity_sensor += intensity_at_distance(intensity_vehicle, dist);
-	  //diagnostic (may be removed or guarded)
-	  if(debugFlag && !isfinite(intensity_sensor))
-	    printf("ERROR: generating intensity_sensor is %f\n",
-		   intensity_sensor);
+          // diagnostic (may be removed or guarded)
+          if (debugFlag && !isfinite(intensity_sensor))
+            printf("ERROR: generating intensity_sensor is %f\n",
+                   intensity_sensor);
         }
       }
 
@@ -491,21 +543,25 @@ void produce_sensor_data(struct agent *people, struct agent *vehicles,
                noise_sensor, intensity_sensor);
       }
       // TODO: send noise_sensor to coordinator process
-      // TODO DOING: and then to the Spark cluster
+      // TODO DOING: and then to the Kafka cluster
       char record[RECORD_BUFFER_SIZE];
       float y_coordinate = lat_coordinate(float_parameters[lat], y_sensor);
-      float x_coordinate = lon_coordinate(float_parameters[lon], x_sensor, y_coordinate);
+      float x_coordinate =
+          lon_coordinate(float_parameters[lon], x_sensor, y_coordinate);
       populate_new_record(record, x_coordinate, y_coordinate, noise_sensor);
-      if(debugFlag){
-	printf("TEST: %s\n", record);
+      send(socket_fd, record, strlen(record), 0);
+      if (debugFlag) {
+        printf("TEST: %s\n", record);
       }
       // TODO: it prints -infinite
     }
   }
 }
 
-void populate_new_record(char *record, float x_coordinate, float y_coordinate, float noise) {
-  sprintf(record, "{\"x\":%f,\"y\":%f,\"val\":[%f]}", x_coordinate, y_coordinate, noise);
+void populate_new_record(char *record, float x_coordinate, float y_coordinate,
+                         float noise) {
+  sprintf(record, "{\"x\":%f,\"y\":%f,\"val\":[%f]}", x_coordinate,
+          y_coordinate, noise);
 }
 
 float lat_coordinate(float origin_coordinate, float offset_meters) {
@@ -520,12 +576,8 @@ float lon_coordinate(float origin_coordinate, float offset_meters,
   return origin_coordinate + offset_meters * lon_degrees_per_meter;
 }
 
-float secf(float angle) {
-  return 1 / cosf(angle);
-}
+float secf(float angle) { return 1 / cosf(angle); }
 
 float degree(float radians) { return radians * 180 / PI; }
 
-float radians(float degrees) {
-  return degrees * PI / 180;  
-}
+float radians(float degrees) { return degrees * PI / 180; }

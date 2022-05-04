@@ -89,19 +89,23 @@ The program accepts the following command line options:
 
 
 
-| Long options       | Meaning                                                      | Type    | Example                     |
-|--------------------|--------------------------------------------------------------|---------|-----------------------------|
-| `Np`               | Noise produced by every person (in dB)                       | `float` | `--Np 2`                    |
-| `Nv`               | Noise produced by every vehicle (in dB)                      | `float` | `--Nv 10`                   |
-| `Dp`               | Radius of circular area affected by a person                 | `float` | `--Dp 2`                    |
-| `Dv`               | Radius of circular area affected by a vehicle                | `float` | `--Dv 10`                   |
-| `Vp`               | Speed of a person (in m/s)                                   | `float` | `--Vp 1`                    |
-| `Vv`               | Speed of a vehicle (in m/s)                                  | `float` | `--Vv 14`                   |
-| `db`               | Activate debug prints                                        |         | `--db`                      |
-| `origin-latitude`  | Latitude coordinate (in decimal degrees) of the area origin  | `float` | `--origin-latitude 45.890`  |
-| `origin-longitude` | Longitude coordinate (in decimal degrees) of the area origin | `float` | `--origin-longitude 9.0804` |
+| Long options           | Meaning                                                      | Type       | Example                            |
+|------------------------|--------------------------------------------------------------|------------|------------------------------------|
+| `Np`                   | Noise produced by every person (in dB)                       | `float`    | `--Np 2`                           |
+| `Nv`                   | Noise produced by every vehicle (in dB)                      | `float`    | `--Nv 10`                          |
+| `Dp`                   | Radius of circular area affected by a person                 | `float`    | `--Dp 2`                           |
+| `Dv`                   | Radius of circular area affected by a vehicle                | `float`    | `--Dv 10`                          |
+| `Vp`                   | Speed of a person (in m/s)                                   | `float`    | `--Vp 1`                           |
+| `Vv`                   | Speed of a vehicle (in m/s)                                  | `float`    | `--Vv 14`                          |
+| `db`                   | Activate debug prints                                        |            | `--db`                             |
+| `origin-latitude`      | Latitude coordinate (in decimal degrees) of the area origin  | `float`    | `--origin-latitude 45.890`         |
+| `origin-longitude`     | Longitude coordinate (in decimal degrees) of the area origin | `float`    | `--origin-longitude 9.0804`        |
+| `kafka-bridge-address` | IPv4 address of the Kafka producer (bridge)                  | `C string` | `--kafka-bridge-address 127.0.0.1` |
+| `kafka-bridge-port`    | Network port of the Kafka producer (bridge)                  | `int`      | `--kafka-bridge-port 9999`         |
 
 To print all the debug prints, the `db` option must be given first.
+
+The default values for the the address of the Kafka producer is `127.0.0.1:9999`.
 
 The following long option aliases are also supported:
 

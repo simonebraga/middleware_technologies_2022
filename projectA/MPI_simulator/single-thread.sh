@@ -13,4 +13,5 @@
 		--Vv 5 \
 		-t 10 \
 		--origin-latitude  45.4578090 \
-		--origin-longitude 9.1737100
+		--origin-longitude 9.1737100 \
+		--kafka-bridge-address 127.0.0.1
