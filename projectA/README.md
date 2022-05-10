@@ -6,12 +6,12 @@
 
 | What | Who | How much |
 |:-|:-:|:-|
-| Documentation (Introduction) || Not started yet |
-| Documentation (Architecture) | Simone | Completed! |
-| Documentation (Design choices) | Marco, Simone | Completed! |
-| Documentation (Main functionalities) | Simone | Completed! |
-| Documentation (Conclusions) || Not started yet |
+| Documentation (Introduction) | Simone | Work in progress... |
+| Documentation (Architecture) | Simone | Work in progress... |
+| Documentation (Design choices) | Marco, Simone | Work in progress... |
+| Documentation (Main functionalities) | Simone | Work in progress... |
+| Documentation (Conclusions) | Simone | Work in progress... |
 | Spark | Simone | Work in progress... |
-| Kafka | Simone | Work in progress... |
+| Kafka | Simone | Completed! |
 | Contiki-NG | Marco | Work in progress... |
 | MPI | Alessandro | Work in progress... |

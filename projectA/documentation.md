@@ -105,7 +105,7 @@ Since the application is built to work at runtime with a continuous stream of in
 ### Step 1 (Pre-processing)
 
 Sensors detect the noise value at a given frequency. For every new reading, the average of the last 6 is recomputed with two possible outcomes:
-1. The average is under a given threshold $k$ &#8594; The record `<coordinates, average>` is sent to the nearest router device.
+1. The average is under a given threshold &#8594; The record `<coordinates, average>` is sent to the nearest router device.
 
 2. The average is over the threshold &#8594; The record `<coordinates, [last_6_readings]>` is sent to the nearest router device.
 
