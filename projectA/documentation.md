@@ -1,5 +1,10 @@
 **4 PAGES DOCUMENTATION**
 
+<!--
+This file shall be exported from Visual Studio Code using yzane.markdown-pdf extension.
+The syntax to insert a page break in the printed file is <div class="page"/>
+-->
+
 ## Introduction
 
 _Text goes here_
@@ -8,11 +13,11 @@ _Text goes here_
 
 To better exploit the potential of every technology involved, the distributed system is split into three main modules:
 
-* A **data processing module** (back-end), based on Apache Spark, with good processing capabilities to handle a huge amount of incoming data.
+* A **data aggregation and processing module** (back-end), based on Apache Kafka and Apache Spark, with good processing capabilities to handle a huge amount of incoming data.
 
 * A **data collection module**, based on Contiki-NG, whose purpose is to implement an edge-computing system able to pre-process and redirect the collected data to the back-end.
 
-* A **simulation module**, based on MPI, whose purpose is to hide to the backend module the lack of data when the use of sensors is not allowed.
+* A **simulation module**, based on MPI, whose purpose is to hide to the back-end module the lack of data when the use of sensors is not allowed.
 
 <p align="center">
   <img width=90% src="./resources/component_diagram.png" />
@@ -22,11 +27,11 @@ The communication between modules is performed through the Internet.
 
 The system is based on the assumption that communication between modules is never guaranteed since the majority of the devices are intrinsically very unstable (we are talking about IoT devices held by common users). As a consequence, the information records exchanged between the front-end and back-end should be kept as light as possible. For a detailed explanation of how every record is composed, see the section about **design choices**.
 
-### Data processing module (Spark)
+### Data aggregation and processing module (Kafka and Spark)
 
-This module consists of a Spark distributed cluster that analyzes the noise data received by other modules. The data is ingested from TCP sockets, then it's processed by the Spark engine that computes some metrics and stores the result.
+This module consists of a Spark distributed cluster that analyzes the noise data read from a Kafka topic. This topic aggregates the data coming from end devices ingesting strings through TCP sockets. Once the Spark engine has processed the data and has computed some metrics, the results are stored in another proper Kafka topic.
 
-Roughly speaking, the map-reduce paradigm implements the following functionalities:
+Roughly speaking, the map-reduce paradigm of Spark implements the following functionalities:
 
 * **Map** &#8594; Data cleaning and enrinchment
 
@@ -49,11 +54,11 @@ The only purpose of this module is to collect noise data in an energy-efficient 
 
 The idea behind the simulation module is to hide the possible absence of data to the back-end module, which must focus on the processing of the received data without spending computational resources on something else.
 
-The module must then produce and send data in the **exact** same format produced by the data collection module, getting it from a simulated environment instead of the real one.
+This module must then produce and send data in the **exact** same format produced by the data collection module, getting it from a simulated environment instead of the real one.
 
 ## Design choices
 
-This section contains an explanation of what led to the choice of every involved technology, as long as a short summary of the reasoning for which other technologies have been excluded.
+This section contains an explanation of what led to the choice of every involved technology, as long as a summary of the reasoning for which other technologies have been excluded.
 
 ### Spark for data processing
 
@@ -65,13 +70,13 @@ Spark is a framework that offers very efficient map-reduce functions to perform 
 * When almost no data is received.  
 Spark is good since it performs calculations only when there is something in input, not wasting computational performance in an almost "idle" situation.
 
-**Why not Kafka?**
+### Kafka for data aggregation
 
-Another alternative we thought about for the back-end was Kafka. The use of Spark would have been anyway necessary for the statistical calculations, and Kafka would end up being used just as a communication interface between the sensors and the back-end. We discarded this option because it'd be a waste to use Kafka just for its communication and storage capabilities.
+Kafka is used as a "middleman" between Spark and the Internet to take care of handling data coming from the end-user application. It is suitable for this purpose since Kafka provides very good scalability if the number of routers grows in size. Moreover, Kafka is used also to persist the ingested data and the computed metrics, hence its storage capabilities are very well exploited.
 
 ### Contiki-NG for data collection
 
-The sensors are implemented in C using Contiki-NG and simulated using Cooja, which is able to reproduce the wireless behavior of such devices, which is suitable for the IoT devices' interaction. Moreover, Contiki-NG is able to perform light pre-processing on the collected data with a small performance impact.
+The sensors are implemented in C using Contiki-NG and simulated using Cooja, which can reproduce the wireless behavior of such devices, which is suitable for the IoT devices' interaction. Moreover, Contiki-NG can perform light pre-processing on the collected data with a small performance impact.
 
 The output record of each sensor is structured as follows (depending on the outcome of the pre-processing):
 
@@ -108,17 +113,15 @@ Sensors detect the noise value at a given frequency. For every new reading, the 
 
 The router device collects the reads of all the near IoT devices and periodically forwards them to the back-end through the regular Internet.
 
-### Step 3 (Data cleaning and enrichment)
+### Step 3 (Data aggregation)
 
-The back-end receives the data from the router devices and directs them to the Spark Streaming engine.
+Kafka takes care of aggregating the ingested data in a single topic that can be accessed by Spark in the next step.
 
-### Step 4 (Data analysis)
+### Step 4 (Data cleaning, enrichment and analysis)
 
-Some predefined metrics are periodically recomputed and made available to the back-end user.
+The Spark Streaming engine reads the data from the Kafka topic. Some predefined metrics are periodically recomputed and made persistent. At every moment the back-end user can read the Kafka topic where the metrics are stored.
 
-At every moment the back-end user can ask for the metrics that are displayed in real-time.
-
-Notice that the steps in case the values come from the simulation are the same.
+_In case the values come from a simulation, the first two steps are replaced with a single "simulation" step. As already stated, from the perspective of the back-end, this complexity is hidden._
 
 ## Conclusions
 
