@@ -7,9 +7,9 @@
 | What | Who | How much |
 |:-|:-:|:-|
 | Documentation (Introduction) | Simone | Work in progress... |
-| Documentation (Architecture) | Simone | Work in progress... |
-| Documentation (Design choices) | Marco, Simone | Work in progress... |
-| Documentation (Main functionalities) | Simone | Work in progress... |
+| Documentation (Architecture) | Simone | Completed! |
+| Documentation (Design choices) | Marco, Simone | Completed! |
+| Documentation (Main functionalities) | Simone | Completed! |
 | Documentation (Conclusions) | Simone | Work in progress... |
 | Spark | Simone | Work in progress... |
 | Kafka | Simone | Completed! |
