@@ -1,4 +1,4 @@
-**4 PAGES DOCUMENTATION**
+# Simulation and Analysis of Noise Level
 
 <!--
 This file shall be exported from Visual Studio Code using yzane.markdown-pdf extension.
@@ -56,6 +56,8 @@ The idea behind the simulation module is to hide the possible absence of data to
 
 This module must then produce and send data in the **exact** same format produced by the data collection module, getting it from a simulated environment instead of the real one.
 
+<div class="page"/>
+
 ## Design choices
 
 This section contains an explanation of what led to the choice of every involved technology, as long as a summary of the reasoning for which other technologies have been excluded.
@@ -85,6 +87,8 @@ The output record of each sensor is structured as follows (depending on the outc
 </p>
 
 Unlike in our early analysis of the system, it is not necessary to keep the notion of "sensor" over time. The entities of this module are meaningful only until they build the record with the detection. We can then forget about them and accept another read as completely uncorrelated with the previous one. This implies a light implementation also for the "router" nodes, whose only purpose is to redirect the collected data to the back-end.
+
+<div class="page"/>
 
 ### MPI for simulation
 
