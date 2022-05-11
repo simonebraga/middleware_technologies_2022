@@ -37,6 +37,7 @@ Both the folders contain useful scripts to run the environment with the correct 
 
 * `D1-run_publisher.sh` is useful for debugging, allows manual publication of events on a specific topic.
 * `D2-run_subscriber.sh` is useful for debugging, reads the content of a Kafka topic.
+* `D3-submit_demo.sh` is useful for debugging, creates random generated records.
 
 <br/>
 
