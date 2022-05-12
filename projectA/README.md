@@ -15,5 +15,5 @@
 | Documentation (Conclusions) | Simone | Completed! |
 | Spark | Simone | Work in progress... |
 | Kafka | Simone | Completed! |
-| Contiki-NG | Marco | Work in progress... |
+| Contiki-NG | Marco, Simone | Work in progress... |
 | MPI | Alessandro | Work in progress... |
