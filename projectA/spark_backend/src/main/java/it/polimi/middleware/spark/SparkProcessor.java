@@ -1,9 +1,8 @@
 package it.polimi.middleware.spark;
 
 import it.polimi.middleware.spark.utils.MiscUtils;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.*;
+import org.apache.spark.sql.expressions.UserDefinedFunction;
 import org.apache.spark.sql.streaming.StreamingQueryException;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -11,8 +10,8 @@ import org.apache.spark.sql.types.StructType;
 
 import java.util.concurrent.TimeoutException;
 
-import static org.apache.spark.sql.functions.col;
-import static org.apache.spark.sql.functions.from_json;
+import static it.polimi.middleware.spark.utils.CustomFunctions.computeNearestPoi;
+import static org.apache.spark.sql.functions.*;
 
 public class SparkProcessor {
 
@@ -36,6 +35,8 @@ public class SparkProcessor {
 
         /* SECTION: POI dataset initialization */
 
+        //TODO Check if this dataset is actually useful
+
         // Define the schema for the POIs dataset
         StructType poiSchema = DataTypes.createStructType(new StructField[] {
                 DataTypes.createStructField("id", DataTypes.StringType, false),
@@ -48,9 +49,6 @@ public class SparkProcessor {
                 .read()
                 .schema(poiSchema)
                 .json(filePath + fileName);
-
-        //TODO Remove in final release
-        poiDataset.show();
 
         /* END-SECTION */
         /* SECTION: Streaming table */
@@ -81,11 +79,14 @@ public class SparkProcessor {
         /* END-SECTION */
         /* SECTION: Data cleaning and enrichment */
 
-        //TODO Clean the dataset from invalid measurements
+        //TODO Clean the dataset from invalid measurements and compute a single value for the "val" column
         Dataset<Row> cleanDataset = rawDataset.na().drop();
 
-        //TODO Transform the dataset associating a POI to each measurement
-        Dataset<Row> richDataset = cleanDataset;
+        UserDefinedFunction getNearestPoi = udf((Double x, Double y) -> computeNearestPoi(x,y), DataTypes.StringType);
+        spark.udf().register("getNearestPoi", getNearestPoi);
+        Dataset<Row> richDataset = cleanDataset
+                .withColumn("poi_id", callUDF("getNearestPoi", col("x"), col("y")))
+                .select("poi_id","val");
 
         /* END-SECTION */
         /* SECTION: Data analysis */
@@ -98,7 +99,7 @@ public class SparkProcessor {
         //TODO Store results in a Kafka topic
 
         //TODO Remove in final release
-        cleanDataset
+        richDataset
                 .writeStream()
                 .format("console")
                 .outputMode("append")
