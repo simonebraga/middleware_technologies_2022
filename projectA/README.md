@@ -8,12 +8,8 @@
 
 | What | Who | How much |
 |:-|:-:|:-|
-| Documentation (Introduction) | Simone | Completed! |
-| Documentation (Architecture) | Simone | Completed! |
-| Documentation (Design choices) | Marco, Simone | Completed! |
-| Documentation (Main functionalities) | Simone | Completed! |
-| Documentation (Conclusions) | Simone | Completed! |
+| Documentation | Marco, Simone | Completed! |
 | Spark | Simone | Work in progress... |
 | Kafka | Simone | Completed! |
-| Contiki-NG | Marco | Work in progress... |
+| Contiki-NG | Marco, Simone | Work in progress... |
 | MPI | Alessandro | Work in progress... |
