@@ -32,7 +32,7 @@ public class Demo {
         // Record format: {"x":11.0,"y":12.0,"val":13.0}
         String toSend;
 
-        System.out.println("[LOG] Demo producer for topic \"" + topic + "\" started with frequency " + 1/(sleep_time_ms*1000) + " Hz");
+        System.out.println("[LOG] Demo producer for topic \"" + topic + "\" started with frequency " + 1000.0/sleep_time_ms + " Hz");
 
         //noinspection InfiniteLoopStatement
         while (true) {
