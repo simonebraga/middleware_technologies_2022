@@ -33,12 +33,12 @@ public class ProducerInstance implements Runnable {
     // Loop on the input stream of the socket connection until it closes
     @Override
     public void run() {
-        System.out.println("LOG: New connection on port " + clientSocket.getPort());
+        System.out.println("[LOG] New connection on port " + clientSocket.getPort());
         try {
             //noinspection InfiniteLoopStatement
             while (true) producer.send(new ProducerRecord<>(topic, null, in.nextLine()));
         } catch (Exception e) {
-            System.out.println("LOG: Connection closed on port " + clientSocket.getPort());
+            System.out.println("[LOG] Connection closed on port " + clientSocket.getPort());
         }
     }
 }

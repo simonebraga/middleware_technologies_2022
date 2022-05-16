@@ -14,8 +14,12 @@ public class Demo {
 
         // Use default values if not specified otherwise
         // Default values work in a local environment in IntelliJ
-        final String bootstrap = args.length > 0 ? args[0] : "localhost:9092";
-        final String topic = args.length > 1 ? args[1] : "rawNoise";
+        final int x_range = args.length > 0 ? Integer.parseInt(args[0]) : 100;
+        final int y_range = args.length > 1 ? Integer.parseInt(args[1]) : 100;
+        final int val_range = args.length > 2 ? Integer.parseInt(args[2]) : 100;
+        final int sleep_time_ms = args.length > 3 ? Integer.parseInt(args[3]) : 1000;
+        final String bootstrap = args.length > 4 ? args[4] : "localhost:9092";
+        final String topic = args.length > 5 ? args[5] : "rawNoise";
 
         final Properties properties = new Properties();
         properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrap);
@@ -25,24 +29,21 @@ public class Demo {
         //noinspection resource
         final KafkaProducer<String, String> producer = new KafkaProducer<>(properties);
 
-        // Record format: {"x":11.0,"y":12.0,"val":[13.0,14.0,15.0,16.0,17.0,18.0]}
+        // Record format: {"x":11.0,"y":12.0,"val":13.0}
         String toSend;
+
+        System.out.println("[LOG] Demo producer for topic \"" + topic + "\" started with frequency " + 1/(sleep_time_ms*1000) + " Hz");
 
         //noinspection InfiniteLoopStatement
         while (true) {
 
-            toSend="{\"x\":" + Math.random()*100;
-            toSend+=",\"y\":" + Math.random()*100;
-            toSend+=",\"val\":[" + Math.random()*100;
-            toSend+="," + Math.random()*100;
-            toSend+="," + Math.random()*100;
-            toSend+="," + Math.random()*100;
-            toSend+="," + Math.random()*100;
-            toSend+="," + Math.random()*100 + "]}";
+            toSend="{\"x\":" + Math.random()*x_range;
+            toSend+=",\"y\":" + Math.random()*y_range;
+            toSend+=",\"val\":" + Math.random()*val_range + "}";
 
             producer.send(new ProducerRecord<>(topic, null, toSend));
 
-            try { TimeUnit.SECONDS.sleep(1); }
+            try { TimeUnit.MILLISECONDS.sleep(sleep_time_ms); }
             catch (InterruptedException ignored) {}
         }
     }

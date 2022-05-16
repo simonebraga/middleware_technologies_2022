@@ -17,6 +17,8 @@ public class ConnectionHandler {
         //noinspection resource
         ServerSocket serverSocket = new ServerSocket(port);
 
+        System.out.println("[LOG] Kafka connection handler listening on port " + port);
+
         // For each new socket connection, start a producer thread that forwards input strings to the Kafka topic
         //noinspection InfiniteLoopStatement
         while (true) {
