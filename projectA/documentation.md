@@ -20,7 +20,7 @@ To better exploit the potential of every technology involved, the distributed sy
 * A **simulation module**, based on MPI, whose purpose is to hide to the back-end module the lack of data when the use of sensors is not allowed.
 
 <p align="center">
-  <img width=90% src="./resources/component_diagram.png" />
+  <img width=80% src="./resources/component_diagram.png" />
 </p>
 
 The communication between modules is performed through the Internet.
@@ -83,7 +83,7 @@ The sensors are implemented in C using Contiki-NG and simulated using Cooja, whi
 The output record of each sensor is structured as follows (depending on the outcome of the pre-processing):
 
 <p align="center">
-  <img width=60% src="./resources/record.png" />
+  <img width=80% src="./resources/record.png" />
 </p>
 
 Unlike in our early analysis of the system, it is not necessary to keep the notion of "sensor" over time. The entities of this module are meaningful only until they build the record with the detection. We can then forget about them and accept another read as completely uncorrelated with the previous one. This implies a light implementation also for the "router" nodes, whose only purpose is to redirect the collected data to the back-end.
@@ -103,15 +103,15 @@ An alternative we discussed for the simulation was Akka, as we thought of repres
 Since the application is built to work at runtime with a continuous stream of incoming data, the following diagram will represent the path of each record produced by the sensors. The overall view of the application is given by multiple records that fulfill this path in parallel.
 
 <p align="center">
-  <img width=90% src="./resources/sequence_diagram.png" />
+  <img width=80% src="./resources/sequence_diagram.png" />
 </p>
 
 ### Step 1 (Pre-processing)
 
 Sensors detect the noise value at a given frequency. For every new reading, the average of the last 6 is recomputed with two possible outcomes:
-1. The average is under a given threshold &#8594; The record `<coordinates, average>` is sent to the nearest router device.
+1. The average is under a given threshold &#8594; The average record `<coordinates, value>` is sent to the nearest router device.
 
-2. The average is over the threshold &#8594; The record `<coordinates, [last_6_readings]>` is sent to the nearest router device.
+2. The average is over the threshold &#8594; The last 6 records `<coordinates, value>` are sent to the nearest router device.
 
 ### Step 2 (Data collection)
 
