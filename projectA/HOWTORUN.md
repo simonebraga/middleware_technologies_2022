@@ -30,13 +30,15 @@ Both the folders contain useful scripts to run the environment with the correct 
 
 * `1-run_zookeeper.sh` is necessary for Kafka to work.
 * `2-run_kafka.sh` initializes the Kafka environment.
-* `3-create_topics.sh` initializes the topic used in the application.
+* `3-create_topics.sh` initializes the topics used in the application.
 * `4-submit_application.sh` submits the .jar file in the app folder to the Kafka engine. It is possible to run multiple instances of this .jar for scalability.
 
 <br/>
 
-* `D1-run_publisher.sh` is useful for debugging, allows manual publication of events on a specific topic.
-* `D2-run_subscriber.sh` is useful for debugging, reads the content of a Kafka topic.
+* `D1-run_publisher.sh` is useful for debugging, allows manual publication of events on a specific topic.  
+Usage `./D1-run_publisher.sh topic_name`
+* `D2-run_subscriber.sh` is useful for debugging, reads the content of a Kafka topic.  
+Usage `./D2-run_subscriber.sh topic_name`
 * `D3-submit_demo.sh` is useful for debugging, creates random generated records.
 
 <br/>
