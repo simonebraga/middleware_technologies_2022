@@ -6,6 +6,7 @@ import org.apache.spark.sql.*;
 import org.apache.spark.sql.expressions.UserDefinedFunction;
 import org.apache.spark.sql.streaming.DataStreamWriter;
 import org.apache.spark.sql.streaming.StreamingQueryException;
+import org.apache.spark.sql.streaming.Trigger;
 import org.apache.spark.sql.types.*;
 
 import java.util.concurrent.TimeoutException;
@@ -24,12 +25,14 @@ public class SparkProcessor {
         final String master = args.length > 0 ? args[0] : "local[*]";
         final String bootstrap = args.length > 1 ? args[1] : "localhost:9092";
         final String topic = args.length > 2 ? args[2] : "rawNoise";
-        final String q1_topic = args.length > 3 ? args[3] : "movingAverage";
-        final String q2_topic = args.length > 4 ? args[4] : "top10poi";
-        final String q3_topic = args.length > 5 ? args[5] : "noiseStreak";
-        final String checkpointLocation = args.length > 6 ? args[6] : "/tmp/checkpoint";
-        final String filePath = args.length > 7 ? args[7] : "src/main/resources/";
-        final String fileName = args.length > 8 ? args[8] : "poi_map.json";
+        final String q1h_topic = args.length > 3 ? args[3] : "hourlyAverage";
+        final String q1d_topic = args.length > 4 ? args[4] : "dailyAverage";
+        final String q1w_topic = args.length > 5 ? args[5] : "weeklyAverage";
+        final String q2_topic = args.length > 6 ? args[6] : "top10poi";
+        final String q3_topic = args.length > 7 ? args[7] : "noiseStreak";
+        final String checkpointLocation = args.length > 8 ? args[8] : "/tmp/checkpoint";
+        final String filePath = args.length > 9 ? args[9] : "src/main/resources/";
+        final String fileName = args.length > 10 ? args[10] : "poi_map.json";
 
         PoiMap.initPoiMap(filePath + fileName);
 
@@ -79,11 +82,11 @@ public class SparkProcessor {
                 .format("kafka")
                 .option("kafka.bootstrap.servers", bootstrap)
                 .option("subscribe", topic)
-                .option("startingOffsets", "latest")
-                .option("failOnDataLoss", "false") // This option is needed if Kafka is set up to drop events after some time, which is the case
+                .option("startingOffsets", "earliest") // "earliest" option is needed for Q2 and Q3
+                .option("failOnDataLoss", "false") // This option is needed if Kafka is set up to drop events after some time
                 .load()
                 .withWatermark("timestamp", "1 week") // Late events are discarded after 1 week (they are useless later than that)
-                .selectExpr("CAST(value AS STRING)", "CAST(timestamp AS STRING)");
+                .selectExpr("CAST(value AS STRING)", "CAST(timestamp AS TIMESTAMP)");
 
         // Clean the rows received from Kafka and apply the schema to the "value" field
         Dataset<Row> rawDataset = rawRecord
@@ -116,48 +119,60 @@ public class SparkProcessor {
                 .groupBy(window(col("ts"), "1 hour", "1 hour"), col("poi_id"))
                 .avg("val")
                 .select(concat(
-                        lit("avg_type: hourly, poi_id: "), //TODO Find a way to add col("window") instead of "avg_type: hourly"
+                        lit("{\"window\":"),
+                        col("window").cast(DataTypes.StringType),
+                        lit(",\"poi_id\":\""),
                         col("poi_id"),
-                        lit(", avg_value: "),
-                        col("avg(val)")).as("value"))
+                        lit("\",\"avg_value\":"),
+                        col("avg(val)").cast(DataTypes.StringType),
+                        lit("\"}")).as("value"))
                 .selectExpr("CAST(value AS STRING)")
                 .writeStream()
                 .format("kafka")
+                .trigger(Trigger.ProcessingTime("1 minute")) // Batch interval can be larger as the window increases
                 .option("kafka.bootstrap.servers", bootstrap)
-                .option("topic", q1_topic)
-                .option("checkpointLocation", checkpointLocation + "/" + q1_topic + "/hourly") // Each query MUST have unique checkpoint location
+                .option("topic", q1h_topic)
+                .option("checkpointLocation", checkpointLocation + "/" + q1h_topic) // Each query MUST have unique checkpoint location
                 .outputMode("update");
 
         DataStreamWriter<Row> dailyAverage = richDataset
                 .groupBy(window(col("ts"), "1 day", "1 day"), col("poi_id"))
                 .avg("val")
                 .select(concat(
-                        lit("avg_type: daily, poi_id: "),
+                        lit("{\"window\":"),
+                        col("window").cast(DataTypes.StringType),
+                        lit(",\"poi_id\":\""),
                         col("poi_id"),
-                        lit(", avg_value: "),
-                        col("avg(val)")).as("value"))
+                        lit("\",\"avg_value\":"),
+                        col("avg(val)").cast(DataTypes.StringType),
+                        lit("\"}")).as("value"))
                 .selectExpr("CAST(value AS STRING)")
                 .writeStream()
                 .format("kafka")
+                .trigger(Trigger.ProcessingTime("1 hour"))
                 .option("kafka.bootstrap.servers", bootstrap)
-                .option("topic", q1_topic)
-                .option("checkpointLocation", checkpointLocation + "/" + q1_topic + "/daily")
+                .option("topic", q1d_topic)
+                .option("checkpointLocation", checkpointLocation + "/" + q1d_topic)
                 .outputMode("update");
 
         DataStreamWriter<Row> weeklyAverage = richDataset
                 .groupBy(window(col("ts"), "1 week", "1 week"), col("poi_id"))
                 .avg("val")
                 .select(concat(
-                        lit("avg_type: weekly, poi_id: "),
+                        lit("{\"window\":"),
+                        col("window").cast(DataTypes.StringType),
+                        lit(",\"poi_id\":\""),
                         col("poi_id"),
-                        lit(", avg_value: "),
-                        col("avg(val)")).as("value"))
+                        lit("\",\"avg_value\":"),
+                        col("avg(val)").cast(DataTypes.StringType),
+                        lit("\"}")).as("value"))
                 .selectExpr("CAST(value AS STRING)")
                 .writeStream()
                 .format("kafka")
+                .trigger(Trigger.ProcessingTime("1 day"))
                 .option("kafka.bootstrap.servers", bootstrap)
-                .option("topic", q1_topic)
-                .option("checkpointLocation", checkpointLocation + "/" + q1_topic + "/weekly")
+                .option("topic", q1w_topic)
+                .option("checkpointLocation", checkpointLocation + "/" + q1w_topic)
                 .outputMode("update");
 
         // Q2: Top 10 points of interest with the highest level of noise over the last hour
@@ -184,6 +199,8 @@ public class SparkProcessor {
                 weeklyAverage.start();
             } catch (TimeoutException e) { System.err.println("[ERROR] Something went wrong executing \"weeklyAverage\" query!"); }
         }).start();
+
+        //TODO Check if this condition is still valid after implementing Q2 and Q3
 
         // This condition should never be satisfied if using streaming queries (which is the case)
         spark.streams().awaitAnyTermination();
