@@ -4,7 +4,7 @@ import it.polimi.middleware.spark.utils.MiscUtils;
 import it.polimi.middleware.spark.utils.PoiMap;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.expressions.UserDefinedFunction;
-import org.apache.spark.sql.streaming.StreamingQuery;
+import org.apache.spark.sql.streaming.DataStreamWriter;
 import org.apache.spark.sql.streaming.StreamingQueryException;
 import org.apache.spark.sql.types.*;
 
@@ -15,7 +15,7 @@ import static org.apache.spark.sql.functions.*;
 
 public class SparkProcessor {
 
-    public static void main(String[] args) throws TimeoutException, StreamingQueryException {
+    public static void main(String[] args) throws StreamingQueryException {
 
         MiscUtils.setLogLevel();
 
@@ -42,6 +42,7 @@ public class SparkProcessor {
         SparkSession spark = SparkSession
                 .builder()
                 .master(master)
+                .config("spark.scheduler.mode", "FAIR") // Needed when running multi-thread queries
                 .appName("SparkProcessor")
                 .getOrCreate();
 
@@ -54,7 +55,7 @@ public class SparkProcessor {
                 DataTypes.createStructField("y", DataTypes.DoubleType, false),
         });
 
-        // Create an instance of a "relatively small dataset" of POIs
+        // Create an instance of a static "relatively small dataset" of POIs
         Dataset<Row> poiDataset = spark
                 .read()
                 .schema(poiSchema)
@@ -81,7 +82,7 @@ public class SparkProcessor {
                 .option("startingOffsets", "latest")
                 .option("failOnDataLoss", "false") // This option is needed if Kafka is set up to drop events after some time, which is the case
                 .load()
-                .withWatermark("timestamp", "1 week") // Late events are discarded after 1 week
+                .withWatermark("timestamp", "1 week") // Late events are discarded after 1 week (they are useless later than that)
                 .selectExpr("CAST(value AS STRING)", "CAST(timestamp AS STRING)");
 
         // Clean the rows received from Kafka and apply the schema to the "value" field
@@ -92,9 +93,12 @@ public class SparkProcessor {
         /* END-SECTION */
         /* SECTION: Data cleaning and enrichment */
 
-        Dataset<Row> cleanDataset = rawDataset.na().drop();//.select("x", "y", "val", "ts");
+        //TODO Enhance data cleaning
 
-        //TODO Fix this transformation to use only Spark SQL
+        // Remove records with null or out-of-range fields
+        Dataset<Row> cleanDataset = rawDataset.na().drop();
+
+        //TODO Perform this with Spark SQL
 
         // Substitute each pair of coordinates with the ID of the nearest POI
         UserDefinedFunction getNearestPoi = udf((Double x, Double y) -> computeNearestPoi(x,y), DataTypes.StringType);
@@ -106,24 +110,55 @@ public class SparkProcessor {
         /* END-SECTION */
         /* SECTION: Data analysis */
 
-        //TODO Enhance data analysis
-
         // Q1: Hourly, daily, and weekly moving average of noise level, for each point of interest
 
-        StreamingQuery hourlyAverage = richDataset
-                .groupBy(
-                        window(col("ts"), "1 hour", "1 hour"),
-                        col("poi_id"))
+        DataStreamWriter<Row> hourlyAverage = richDataset
+                .groupBy(window(col("ts"), "1 hour", "1 hour"), col("poi_id"))
                 .avg("val")
-                .select(concat(col("poi_id"), lit(": "),col("avg(val)")).as("value"))
+                .select(concat(
+                        lit("avg_type: hourly, poi_id: "), //TODO Find a way to add col("window") instead of "avg_type: hourly"
+                        col("poi_id"),
+                        lit(", avg_value: "),
+                        col("avg(val)")).as("value"))
                 .selectExpr("CAST(value AS STRING)")
                 .writeStream()
                 .format("kafka")
-                .option("checkpointLocation", checkpointLocation)
                 .option("kafka.bootstrap.servers", bootstrap)
                 .option("topic", q1_topic)
-                .outputMode("update")
-                .start();
+                .option("checkpointLocation", checkpointLocation + "/" + q1_topic + "/hourly") // Each query MUST have unique checkpoint location
+                .outputMode("update");
+
+        DataStreamWriter<Row> dailyAverage = richDataset
+                .groupBy(window(col("ts"), "1 day", "1 day"), col("poi_id"))
+                .avg("val")
+                .select(concat(
+                        lit("avg_type: daily, poi_id: "),
+                        col("poi_id"),
+                        lit(", avg_value: "),
+                        col("avg(val)")).as("value"))
+                .selectExpr("CAST(value AS STRING)")
+                .writeStream()
+                .format("kafka")
+                .option("kafka.bootstrap.servers", bootstrap)
+                .option("topic", q1_topic)
+                .option("checkpointLocation", checkpointLocation + "/" + q1_topic + "/daily")
+                .outputMode("update");
+
+        DataStreamWriter<Row> weeklyAverage = richDataset
+                .groupBy(window(col("ts"), "1 week", "1 week"), col("poi_id"))
+                .avg("val")
+                .select(concat(
+                        lit("avg_type: weekly, poi_id: "),
+                        col("poi_id"),
+                        lit(", avg_value: "),
+                        col("avg(val)")).as("value"))
+                .selectExpr("CAST(value AS STRING)")
+                .writeStream()
+                .format("kafka")
+                .option("kafka.bootstrap.servers", bootstrap)
+                .option("topic", q1_topic)
+                .option("checkpointLocation", checkpointLocation + "/" + q1_topic + "/weekly")
+                .outputMode("update");
 
         // Q2: Top 10 points of interest with the highest level of noise over the last hour
 
@@ -132,18 +167,26 @@ public class SparkProcessor {
         /* END-SECTION */
         /* SECTION: Store results */
 
-        //TODO Store results in a Kafka topic
+        new Thread(() -> {
+            try {
+                hourlyAverage.start();
+            } catch (TimeoutException e) { System.err.println("[ERROR] Something went wrong executing \"hourlyAverage\" query!"); }
+        }).start();
 
-        hourlyAverage.awaitTermination();
-        //TODO Remove in final release
+        new Thread(() -> {
+            try {
+                dailyAverage.start();
+            } catch (TimeoutException e) { System.err.println("[ERROR] Something went wrong executing \"dailyAverage\" query!"); }
+        }).start();
 
-        /* richDataset
-                .writeStream()
-                .format("console")
-                .outputMode("append")
-                .option("truncate", "false")
-                .start()
-                .awaitTermination(); */
+        new Thread(() -> {
+            try {
+                weeklyAverage.start();
+            } catch (TimeoutException e) { System.err.println("[ERROR] Something went wrong executing \"weeklyAverage\" query!"); }
+        }).start();
+
+        // This condition should never be satisfied if using streaming queries (which is the case)
+        spark.streams().awaitAnyTermination();
 
         /* END-SECTION */
 
