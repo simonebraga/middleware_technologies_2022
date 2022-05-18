@@ -30,9 +30,10 @@ public class SparkProcessor {
         final String q1w_topic = args.length > 5 ? args[5] : "weeklyAverage";
         final String q2_topic = args.length > 6 ? args[6] : "top10poi";
         final String q3_topic = args.length > 7 ? args[7] : "noiseStreak";
-        final String checkpointLocation = args.length > 8 ? args[8] : "/tmp/checkpoint";
-        final String filePath = args.length > 9 ? args[9] : "src/main/resources/";
-        final String fileName = args.length > 10 ? args[10] : "poi_map.json";
+        final Double q3_threshold = args.length > 8 ? Double.parseDouble(args[8]) : 100.0;
+        final String checkpointLocation = args.length > 9 ? args[9] : "/tmp/checkpoint";
+        final String filePath = args.length > 10 ? args[10] : "src/main/resources/";
+        final String fileName = args.length > 11 ? args[11] : "poi_map.json";
 
         PoiMap.initPoiMap(filePath + fileName);
 
@@ -114,6 +115,7 @@ public class SparkProcessor {
         /* SECTION: Data analysis */
 
         // Q1: Hourly, daily, and weekly moving average of noise level, for each point of interest
+        // Implementation: Aggregate rows by columns "window" and "poi_id", compute the average of column "value"
 
         DataStreamWriter<Row> hourlyAverage = richDataset
                 .groupBy(window(col("ts"), "1 hour", "1 hour"), col("poi_id"))
@@ -125,11 +127,11 @@ public class SparkProcessor {
                         col("poi_id"),
                         lit("\",\"avg_value\":"),
                         col("avg(val)").cast(DataTypes.StringType),
-                        lit("\"}")).as("value"))
+                        lit("}")).as("value"))
                 .selectExpr("CAST(value AS STRING)")
                 .writeStream()
                 .format("kafka")
-                .trigger(Trigger.ProcessingTime("1 minute")) // Batch interval can be larger as the window increases
+                //.trigger(Trigger.ProcessingTime("1 minute")) // Set batch interval to slow down result population
                 .option("kafka.bootstrap.servers", bootstrap)
                 .option("topic", q1h_topic)
                 .option("checkpointLocation", checkpointLocation + "/" + q1h_topic) // Each query MUST have unique checkpoint location
@@ -145,11 +147,11 @@ public class SparkProcessor {
                         col("poi_id"),
                         lit("\",\"avg_value\":"),
                         col("avg(val)").cast(DataTypes.StringType),
-                        lit("\"}")).as("value"))
+                        lit("}")).as("value"))
                 .selectExpr("CAST(value AS STRING)")
                 .writeStream()
                 .format("kafka")
-                .trigger(Trigger.ProcessingTime("1 hour"))
+                //.trigger(Trigger.ProcessingTime("1 minute")) // Set batch interval to slow down result population
                 .option("kafka.bootstrap.servers", bootstrap)
                 .option("topic", q1d_topic)
                 .option("checkpointLocation", checkpointLocation + "/" + q1d_topic)
@@ -165,19 +167,69 @@ public class SparkProcessor {
                         col("poi_id"),
                         lit("\",\"avg_value\":"),
                         col("avg(val)").cast(DataTypes.StringType),
-                        lit("\"}")).as("value"))
+                        lit("}")).as("value"))
                 .selectExpr("CAST(value AS STRING)")
                 .writeStream()
                 .format("kafka")
-                .trigger(Trigger.ProcessingTime("1 day"))
+                //.trigger(Trigger.ProcessingTime("1 minute")) // Set batch interval to slow down result population
                 .option("kafka.bootstrap.servers", bootstrap)
                 .option("topic", q1w_topic)
                 .option("checkpointLocation", checkpointLocation + "/" + q1w_topic)
                 .outputMode("update");
 
         // Q2: Top 10 points of interest with the highest level of noise over the last hour
+        // Implementation: Perform the same query as Q1, then order by descending column "window" and column "avg(val)"
+
+        //TODO Select only rows of interest (not possible in Spark structured streaming)
+
+        DataStreamWriter<Row> top10poi = richDataset
+                .groupBy(window(col("ts"), "1 hour", "1 hour"), col("poi_id"))
+                .avg("val")
+                .orderBy(desc("window"), desc("avg(val)"))
+                .select(concat(
+                        lit("{\"window\":"),
+                        col("window").cast(DataTypes.StringType),
+                        lit(",\"poi_id\":\""),
+                        col("poi_id"),
+                        lit("\",\"avg_value\":"),
+                        col("avg(val)").cast(DataTypes.StringType),
+                        lit("}")).as("value"))
+                .selectExpr("CAST(value AS STRING)")
+                .writeStream()
+                .format("kafka")
+                //.trigger(Trigger.ProcessingTime("1 minute")) // Set batch interval to slow down result population
+                .option("kafka.bootstrap.servers", bootstrap)
+                .option("topic", q2_topic)
+                .option("checkpointLocation", checkpointLocation + "/" + q2_topic)
+                .outputMode("complete");
 
         // Q3: Point of interest with the longest streak of good noise level
+        // Implementation: For each POI, select the last over-threshold value, compute the new column "streak" then order by descending column "streak"
+
+        //TODO Select only rows of interest (not possible in Spark structured streaming)
+
+        DataStreamWriter<Row> noiseStreak = richDataset
+                .where(col("val").gt(q3_threshold))
+                .groupBy(col("poi_id"))
+                .agg(max(col("ts")))
+                .withColumn("streak", current_timestamp().minus(col("max(ts)")))
+                .orderBy(desc("streak"))
+                .select(concat(
+                        lit("{\"starting_timestamp\":{"),
+                        col("max(ts)").cast(DataTypes.StringType),
+                        lit("},\"poi_id\":\""),
+                        col("poi_id"),
+                        lit("\",\"streak\":{"),
+                        col("streak").cast(DataTypes.StringType),
+                        lit("}}")).as("value"))
+                .selectExpr("CAST(value AS STRING)")
+                .writeStream()
+                .format("kafka")
+                //.trigger(Trigger.ProcessingTime("1 minute")) // Set batch interval to slow down result population
+                .option("kafka.bootstrap.servers", bootstrap)
+                .option("topic", q3_topic)
+                .option("checkpointLocation", checkpointLocation + "/" + q3_topic)
+                .outputMode("complete");
 
         /* END-SECTION */
         /* SECTION: Store results */
@@ -200,7 +252,17 @@ public class SparkProcessor {
             } catch (TimeoutException e) { System.err.println("[ERROR] Something went wrong executing \"weeklyAverage\" query!"); }
         }).start();
 
-        //TODO Check if this condition is still valid after implementing Q2 and Q3
+        new Thread(() -> {
+            try {
+                top10poi.start();
+            } catch (TimeoutException e) { System.err.println("[ERROR] Something went wrong executing \"top10poi\" query!"); }
+        }).start();
+
+        new Thread(() -> {
+            try {
+                noiseStreak.start();
+            } catch (TimeoutException e) { System.err.println("[ERROR] Something went wrong executing \"noiseStreak\" query!"); }
+        }).start();
 
         // This condition should never be satisfied if using streaming queries (which is the case)
         spark.streams().awaitAnyTermination();
