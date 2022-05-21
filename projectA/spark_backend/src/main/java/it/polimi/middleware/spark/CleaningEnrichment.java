@@ -117,7 +117,6 @@ public class CleaningEnrichment {
 
         DataStreamWriter<Row> fileOutput = richDataset
                 .select("poi_id", "val", "ts")
-                //.withColumn("added_ts", current_timestamp().plus(expr("INTERVAL 2 HOURS")))
                 .withColumn("batch_ts", current_timestamp())
                 .writeStream()
                 .format("csv")
@@ -125,6 +124,7 @@ public class CleaningEnrichment {
                 .option("path", noiseDataLocation)
                 .option("checkpointLocation", checkpointLocation + "/file")
                 .option("header", true)
+                .option("timestampFormat", "yyyy-MM-dd HH:mm:ss.SSSSSS") // Must be the same format of current_timestamp()
                 .partitionBy("batch_ts")
                 .outputMode("append");
 
@@ -133,7 +133,7 @@ public class CleaningEnrichment {
                         lit("{\"poi_id\":\""),
                         col("poi_id"),
                         lit("\",\"val\":"),
-                        col("val").cast(DataTypes.StringType),
+                        col("val"),
                         lit(",\"ts\":\""),
                         col("ts"),
                         lit("\"}")
