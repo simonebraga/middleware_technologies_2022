@@ -124,7 +124,7 @@ public class CleaningEnrichment {
                 .option("path", noiseDataLocation)
                 .option("checkpointLocation", checkpointLocation + "/file")
                 .option("header", true)
-                .option("timestampFormat", "yyyy-MM-dd HH:mm:ss.SSSSSS") // Must be the same format of current_timestamp()
+                .option("timestampFormat", "yyyy-MM-dd HH:mm:ss.SSS") // Must be the same format of current_timestamp()
                 .partitionBy("batch_ts")
                 .outputMode("append");
 
