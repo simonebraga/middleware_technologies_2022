@@ -5,6 +5,8 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
+import static org.apache.spark.sql.functions.*;
+
 public class Analysis {
 
     public static void main(String[] args) {
@@ -28,12 +30,21 @@ public class Analysis {
                 .appName("Analysis")
                 .getOrCreate();
 
-        final Dataset<Row> values = spark
+        final Dataset<Row> fullDataset = spark
                 .read()
+                .format("csv")
                 .option("header", "true")
                 .option("delimiter", ",")
                 .csv(noiseDataLocation + "/*/*.csv");
 
-        System.out.println(values.count());
+        System.out.println("[DEBUG] Fetched dataset with " + fullDataset.count() + "elements");
+
+        Dataset<Row> filteredDemo = fullDataset
+                .withColumn("current", current_timestamp().minus(expr("INTERVAL 1 HOUR")))
+                .where(col("ts").gt(col("current")));
+
+        filteredDemo.show(20, false);
+
+        spark.close();
     }
 }
