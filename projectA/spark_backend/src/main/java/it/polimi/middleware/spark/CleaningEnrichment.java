@@ -15,6 +15,10 @@ import static org.apache.spark.sql.functions.*;
 
 public class CleaningEnrichment {
 
+    private static void printInstructions() {
+        System.out.println("Type \"quit\" to stop the cleaning and enrichment module.");
+    }
+
     public static void main(String[] args) {
 
         MiscUtils.setLogLevel();
@@ -162,10 +166,12 @@ public class CleaningEnrichment {
             }
         }).start();
 
-        System.out.println("[LOG] Cleaning and enrichment process started.\nType \"quit\" to stop the process.");
+        System.out.println("[LOG] Cleaning and enrichment module started.\n");
+        printInstructions();
         Scanner in = new Scanner(System.in);
         while (!in.nextLine().equals("quit")) {
-            System.out.println("Unknown command. Type \"quit\" to stop the cleaning and enrichment process.");
+            System.out.println("\nUnknown command.");
+            printInstructions();
         }
 
         // As an alternative termination condition the following code can be used
