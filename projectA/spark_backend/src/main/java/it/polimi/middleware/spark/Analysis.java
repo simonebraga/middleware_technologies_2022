@@ -103,6 +103,8 @@ public class Analysis {
         /* END-SECTION */
         /* SECTION: Store or show results */
 
+        //TODO Decide what to do with the queries
+
         System.out.println("Query 1");
         hourlyAverage.show(20, false);
 
