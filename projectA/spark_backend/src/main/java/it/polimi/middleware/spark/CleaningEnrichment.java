@@ -5,7 +5,6 @@ import it.polimi.middleware.spark.utils.PoiMap;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.expressions.UserDefinedFunction;
 import org.apache.spark.sql.streaming.DataStreamWriter;
-import org.apache.spark.sql.streaming.StreamingQueryException;
 import org.apache.spark.sql.streaming.Trigger;
 import org.apache.spark.sql.types.*;
 
@@ -16,7 +15,7 @@ import static org.apache.spark.sql.functions.*;
 
 public class CleaningEnrichment {
 
-    public static void main(String[] args) throws StreamingQueryException {
+    public static void main(String[] args) {
 
         MiscUtils.setLogLevel();
 
@@ -31,7 +30,8 @@ public class CleaningEnrichment {
         final String mapFilePath = args.length > 6 ? args[6] : "src/main/resources/";
         final String mapFileName = args.length > 7 ? args[7] : "poi_map.json";
 
-        PoiMap.initPoiMap(mapFilePath + mapFileName);
+        PoiMap poiMap = new PoiMap();
+        poiMap.initPoiMap(mapFilePath + mapFileName);
 
         System.out.println("[LOG] Spark started with the following parameters:\n" +
                 "[LOG] spark.master: " + master + "\n" +
@@ -101,10 +101,8 @@ public class CleaningEnrichment {
 
         //TODO Perform this with Spark SQL
 
-        //TODO Broadcast ObjectMapper to every worker
-
         // Substitute each pair of coordinates with the ID of the nearest POI
-        UserDefinedFunction getNearestPoi = udf((Double x, Double y) -> PoiMap.computeNearestPoi(x,y), DataTypes.StringType);
+        UserDefinedFunction getNearestPoi = udf((Double x, Double y) -> poiMap.computeNearestPoi(x,y), DataTypes.StringType);
         spark.udf().register("getNearestPoi", getNearestPoi);
         Dataset<Row> richDataset = cleanDataset
                 .withColumn("poi_id", callUDF("getNearestPoi", col("x"), col("y")))
@@ -164,10 +162,10 @@ public class CleaningEnrichment {
             }
         }).start();
 
-        System.out.println("[LOG] Cleaning and enrichment process started.\nType \"quit\" to stop the process");
+        System.out.println("[LOG] Cleaning and enrichment process started.\nType \"quit\" to stop the process.");
         Scanner in = new Scanner(System.in);
         while (!in.nextLine().equals("quit")) {
-            System.out.println("Unknown command. Type \"quit\" to stop the application.");
+            System.out.println("Unknown command. Type \"quit\" to stop the cleaning and enrichment process.");
         }
 
         // As an alternative termination condition the following code can be used

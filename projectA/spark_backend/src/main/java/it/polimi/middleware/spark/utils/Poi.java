@@ -1,11 +1,13 @@
 package it.polimi.middleware.spark.utils;
 
+import java.io.Serializable;
+
 // A Point Of Interest (POI) is a set of 3 variables:
 // id -> Identifier (ID) of the POI
 // x -> Horizontal coordinate of the POI
 // y -> Vertical coordinate of the POI
 
-public class Poi {
+public class Poi implements Serializable {
 
     private String id;
     private Double x;
