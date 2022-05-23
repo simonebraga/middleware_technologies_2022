@@ -8,9 +8,18 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
+import java.util.Scanner;
+
 import static org.apache.spark.sql.functions.*;
 
 public class Analysis {
+
+    private static void printInstructions() {
+        System.out.println("Type \"quit\" to stop the analysis module or perform one of the following queries:\n" +
+                "\"q1h\" | \"q1d\" | \"q1w\" - Hourly, daily, and weekly moving average of noise level, for each point of interest.\n" +
+                "\"q2\" - Top 10 points of interest with the highest level of noise over the last hour.\n" +
+                "\"q3\" - Point of interest with the longest streak of good noise level.");
+    }
 
     public static void main(String[] args) {
 
@@ -21,6 +30,7 @@ public class Analysis {
         final String master = args.length > 0 ? args[0] : "local[*]";
         final String noiseDataLocation = args.length > 1 ? args[1] : "/tmp/cleaning_enrichment/noise_data";
         final String checkpointLocation = args.length > 2 ? args[2] : "/tmp/analysis/checkpoint";
+        final int poi_amount = args.length > 3 ? Integer.parseInt(args[3]) : 10;
 
         System.out.println("[LOG] Spark started with the following parameters:\n" +
                 "[LOG] spark.master: " + master + "\n" +
@@ -30,6 +40,7 @@ public class Analysis {
         SparkSession spark = SparkSession
                 .builder()
                 .master(master)
+                .config("spark.scheduler.mode", "FAIR") // Needed when running multi-thread queries
                 .appName("Analysis")
                 .getOrCreate();
 
@@ -101,18 +112,38 @@ public class Analysis {
                 .limit(1);
 
         /* END-SECTION */
-        /* SECTION: Store or show results */
+        /* SECTION: Compute results */
 
-        //TODO Decide what to do with the queries
-
-        System.out.println("Query 1");
-        hourlyAverage.show(20, false);
-
-        System.out.println("Query 2");
-        top10poi.show(20, false);
-
-        System.out.println("Query 3");
-        noiseStreak.show(20, false);
+        System.out.println("[LOG] Analysis module started.\n");
+        printInstructions();
+        Scanner in = new Scanner(System.in); String s;
+        while (!(s=in.nextLine()).equals("quit")) {
+            switch (s) {
+                case "q1h":
+                    System.out.println("\nOutput of query 1 (hourly):");
+                    hourlyAverage.show(poi_amount, false);
+                    break;
+                case "q1d":
+                    System.out.println("\nOutput of query 1 (daily):");
+                    dailyAverage.show(poi_amount, false);
+                    break;
+                case "q1w":
+                    System.out.println("\nOutput of query 1 (weekly):");
+                    weeklyAverage.show(poi_amount, false);
+                    break;
+                case "q2":
+                    System.out.println("\nOutput of query 2:");
+                    top10poi.show(10, false);
+                    break;
+                case "q3":
+                    System.out.println("\nOutput of query 3:");
+                    noiseStreak.show(1, false);
+                    break;
+                default:
+                    System.out.println("\nUnknown command.");
+            }
+            printInstructions();
+        }
 
         /* END-SECTION */
 
