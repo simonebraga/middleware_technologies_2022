@@ -21,6 +21,11 @@ public class Analysis {
                 "\"q3\" - Point of interest with the longest streak of good noise level.");
     }
 
+    private static void printWarning() {
+        System.out.println("[WARNING] You are asking for a query that is intended only as a demo.\n" +
+                "[WARNING] If you are not a developer, please stick to the listed queries.");
+    }
+
     public static void main(String[] args) {
 
         MiscUtils.setLogLevel();
@@ -31,6 +36,7 @@ public class Analysis {
         final String noiseDataLocation = args.length > 1 ? args[1] : "/tmp/cleaning_enrichment/noise_data";
         final String checkpointLocation = args.length > 2 ? args[2] : "/tmp/analysis/checkpoint";
         final int poi_amount = args.length > 3 ? Integer.parseInt(args[3]) : 10;
+        final Double q3_threshold = args.length > 4 ? Double.parseDouble(args[4]) : 70.0;
 
         System.out.println("[LOG] Spark started with the following parameters:\n" +
                 "[LOG] spark.master: " + master + "\n" +
@@ -68,6 +74,14 @@ public class Analysis {
         // Q1: Hourly, daily, and weekly moving average of noise level, for each point of interest
         // Implementation: Select rows from the last hour/day/week, aggregate over "poi_id" performing the average of "val"
 
+        // This query is intended only as a demo. Don't use it unless you are not a developer.
+        Dataset<Row> minuteAverage = fullDataset
+                .where(col("timestamp").gt(current_timestamp().minus(expr("INTERVAL 1 MINUTE"))))
+                .select("poi_id", "val")
+                .groupBy("poi_id")
+                .avg("val")
+                .withColumnRenamed("avg(val)", "avg_noise");
+
         Dataset<Row> hourlyAverage = fullDataset
                 .where(col("timestamp").gt(current_timestamp().minus(expr("INTERVAL 1 HOUR"))))
                 .select("poi_id", "val")
@@ -101,9 +115,8 @@ public class Analysis {
         // compute the time interval between the value and the current timestamp
         // then select the POI with the longest streak
 
-        Double threshold = 70.0;
         Dataset<Row> noiseStreak = fullDataset
-                .where(col("val").gt(threshold))
+                .where(col("val").gt(q3_threshold))
                 .groupBy("poi_id")
                 .agg(max("timestamp"))
                 .withColumn("streak", current_timestamp().minus(col("max(timestamp)")))
@@ -119,6 +132,11 @@ public class Analysis {
         Scanner in = new Scanner(System.in); String s;
         while (!(s=in.nextLine()).equals("quit")) {
             switch (s) {
+                case "q1m":
+                    printWarning();
+                    System.out.println("\nOutput of demo query:");
+                    minuteAverage.show(poi_amount, false);
+                    break;
                 case "q1h":
                     System.out.println("\nOutput of query 1 (hourly):");
                     hourlyAverage.show(poi_amount, false);
