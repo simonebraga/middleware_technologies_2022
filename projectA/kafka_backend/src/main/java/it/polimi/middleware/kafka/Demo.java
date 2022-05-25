@@ -14,12 +14,15 @@ public class Demo {
 
         // Use default values if not specified otherwise
         // Default values work in a local environment in IntelliJ
-        final int x_range = args.length > 0 ? Integer.parseInt(args[0]) : 100;
-        final int y_range = args.length > 1 ? Integer.parseInt(args[1]) : 100;
-        final int val_range = args.length > 2 ? Integer.parseInt(args[2]) : 100;
-        final int sleep_time_ms = args.length > 3 ? Integer.parseInt(args[3]) : 1000;
-        final String bootstrap = args.length > 4 ? args[4] : "localhost:9092";
-        final String topic = args.length > 5 ? args[5] : "rawNoise";
+        final double min_x = args.length > 0 ? Double.parseDouble(args[0]) : 0.0;
+        final double max_x = args.length > 1 ? Double.parseDouble(args[1]) : 45.0;
+        final double min_y = args.length > 2 ? Double.parseDouble(args[2]) : 0.0;
+        final double max_y = args.length > 3 ? Double.parseDouble(args[3]) : 35.0;
+        final double min_val = args.length > 4 ? Double.parseDouble(args[4]) : 0.0;
+        final double max_val = args.length > 5 ? Double.parseDouble(args[5]) : 120.0;
+        final int sleep_time_ms = args.length > 6 ? Integer.parseInt(args[6]) : 1000;
+        final String bootstrap = args.length > 7 ? args[7] : "localhost:9092";
+        final String topic = args.length > 8 ? args[8] : "rawNoise";
 
         final Properties properties = new Properties();
         properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrap);
@@ -37,9 +40,9 @@ public class Demo {
         //noinspection InfiniteLoopStatement
         while (true) {
 
-            toSend="{\"x\":" + Math.random()*x_range;
-            toSend+=",\"y\":" + Math.random()*y_range;
-            toSend+=",\"val\":" + Math.random()*val_range + "}";
+            toSend="{\"x\":" + (Math.random()*(max_x-min_x)-min_x);
+            toSend+=",\"y\":" + (Math.random()*(max_y-min_y)-min_y);
+            toSend+=",\"val\":" + (Math.random()*(max_val-min_val)-min_val) + "}";
 
             producer.send(new ProducerRecord<>(topic, null, toSend));
 

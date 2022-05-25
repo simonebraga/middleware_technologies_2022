@@ -33,6 +33,12 @@ public class CleaningEnrichment {
         final String noiseDataLocation = args.length > 5 ? args[5] : "/tmp/cleaning_enrichment/noise_data";
         final String mapFilePath = args.length > 6 ? args[6] : "src/main/resources/";
         final String mapFileName = args.length > 7 ? args[7] : "poi_map.json";
+        final Double minX = args.length > 8 ? Double.parseDouble(args[8]) : 0.0;
+        final Double maxX = args.length > 9 ? Double.parseDouble(args[9]) : 45.0;
+        final Double minY = args.length > 10 ? Double.parseDouble(args[10]) : 0.0;
+        final Double maxY = args.length > 11 ? Double.parseDouble(args[11]) : 35.0;
+        final Double minVal = args.length > 12 ? Double.parseDouble(args[12]) : 0.0;
+        final Double maxVal = args.length > 13 ? Double.parseDouble(args[13]) : 120.0;
 
         PoiMap poiMap = new PoiMap();
         poiMap.initPoiMap(mapFilePath + mapFileName);
@@ -51,22 +57,6 @@ public class CleaningEnrichment {
                 .appName("CleaningEnrichment")
                 .getOrCreate();
 
-        /* SECTION: POI dataset initialization */
-
-        // Define the schema for the POIs dataset
-        StructType poiSchema = DataTypes.createStructType(new StructField[] {
-                DataTypes.createStructField("id", DataTypes.StringType, false),
-                DataTypes.createStructField("x", DataTypes.DoubleType, false),
-                DataTypes.createStructField("y", DataTypes.DoubleType, false),
-        });
-
-        // Create an instance of a static "relatively small dataset" of POIs
-        Dataset<Row> poiDataset = spark
-                .read()
-                .schema(poiSchema)
-                .json(mapFilePath + mapFileName + "l");
-
-        /* END-SECTION */
         /* SECTION: Streaming table initialization */
 
         // Define the schema for each string coming from external applications
@@ -98,12 +88,11 @@ public class CleaningEnrichment {
         /* END-SECTION */
         /* SECTION: Data cleaning and enrichment */
 
-        //TODO Enhance data cleaning
-
         // Remove records with null or out-of-range fields
-        Dataset<Row> cleanDataset = rawDataset.na().drop();
-
-        //TODO Perform this with Spark SQL
+        Dataset<Row> cleanDataset = rawDataset.na().drop()
+                .where(col("val").between(minVal, maxVal))
+                .where(col("x").between(minX, maxX))
+                .where(col("y").between(minY, maxY));
 
         // Substitute each pair of coordinates with the ID of the nearest POI
         UserDefinedFunction getNearestPoi = udf((Double x, Double y) -> poiMap.computeNearestPoi(x,y), DataTypes.StringType);
