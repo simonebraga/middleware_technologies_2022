@@ -52,7 +52,8 @@ Usage `./D2-run_subscriber.sh topic_name`
 </p>
 
 * `5-start-local.sh` sets up a local Spark cluster with a master and a worker.
-* `6-start_submit.sh` submits to the Spark cluster the back-end application to be run.
+* `6-submit_cleaning_enrichment.sh` submits to the Spark cluster the back-end module for data cleaning and enrichment.
+* `7-submit_analysis.sh` submits to the Spark cluster the back-end module for data analysis.
 
 <br/>
 
