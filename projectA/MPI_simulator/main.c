@@ -17,6 +17,8 @@
 #define PI 3.14159265
 #define KAFKA_BRIDGE_DEFAULT_PORT 9999
 #define KAFKA_BRIDGE_DEFAULT_ADDR "127.0.0.1"
+// distance (in m) between contiguous virtual "sensors"
+#define VIRTUAL_SENSOR_SPACING 10
 
 // general TODO: why sometimes people don't move?
 
@@ -509,8 +511,8 @@ float decibels(float intensity) {
 void produce_sensor_data(struct agent *people, struct agent *vehicles,
                          int people_quota, int vehicles_quota, int socket_fd,
                          struct sockaddr_in server_addr) {
-  for (int x_sensor = 0; x_sensor <= int_parameters[L]; x_sensor++) {
-    for (int y_sensor = 0; y_sensor <= int_parameters[W]; y_sensor++) {
+  for (int x_sensor = 0; x_sensor <= int_parameters[L]; x_sensor += VIRTUAL_SENSOR_SPACING) {
+    for (int y_sensor = 0; y_sensor <= int_parameters[W]; y_sensor += VIRTUAL_SENSOR_SPACING) {
       float dist;
       float intensity_sensor = 0.0;
 
