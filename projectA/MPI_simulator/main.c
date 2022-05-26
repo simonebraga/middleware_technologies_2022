@@ -560,7 +560,7 @@ void produce_sensor_data(struct agent *people, struct agent *vehicles,
 
 void populate_new_record(char *record, float x_coordinate, float y_coordinate,
                          float noise) {
-  sprintf(record, "{\"x\":%f,\"y\":%f,\"val\":[%f]}", x_coordinate,
+  sprintf(record, "{\"x\":%f,\"y\":%f,\"val\":%f}\n", x_coordinate,
           y_coordinate, noise);
 }
 
