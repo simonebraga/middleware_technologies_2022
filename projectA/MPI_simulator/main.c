@@ -62,6 +62,7 @@ float float_parameters[N_FLOAT_PARAMETERS];
 float intensity_ref = 0.000000000001;
 float intensity_person;
 float intensity_vehicle;
+float minimum_noise = 0.0;
 
 // network address data
 int kafka_bridge_port;
@@ -536,24 +537,36 @@ void produce_sensor_data(struct agent *people, struct agent *vehicles,
 
       float noise_sensor = decibels(intensity_sensor);
       if (debugFlag &&
-          (noise_sensor == INFINITY)) { // not the best, but we need to exclude
-                                        // -INFINITY, which is ok
+          (noise_sensor == INFINITY)) { // not the best, but we need to check
+                                        // only INFINITY, while the negative case
+                                        // is handled later
         printf("ERROR: noise_sensor is %f, and generating intensity_sensor is "
                "%f\n",
                noise_sensor, intensity_sensor);
       }
-      // TODO: send noise_sensor to coordinator process
+      if (noise_sensor < 0){
+	noise_sensor = 0.0;
+	if(debugFlag){
+	  printf("INFO: setting negative noise to 0.0\n");
+	}
+      }
+      // TODO: send noise_sensor to coordinator process?
       // TODO DOING: and then to the Kafka cluster
       char record[RECORD_BUFFER_SIZE];
       float y_coordinate = lat_coordinate(float_parameters[lat], y_sensor);
       float x_coordinate =
           lon_coordinate(float_parameters[lon], x_sensor, y_coordinate);
+
       populate_new_record(record, x_coordinate, y_coordinate, noise_sensor);
       send(socket_fd, record, strlen(record), 0);
-      if (debugFlag) {
-        printf("TEST: %s\n", record);
+
+      if(debugFlag && noise_sensor != -INFINITY && noise_sensor < minimum_noise){
+	minimum_noise = noise_sensor;
+	printf("new minimum: %f\n", minimum_noise);
       }
-      // TODO: it prints -infinite
+      if (debugFlag) {
+	printf("TEST: %s\n", record);
+      }
     }
   }
 }
