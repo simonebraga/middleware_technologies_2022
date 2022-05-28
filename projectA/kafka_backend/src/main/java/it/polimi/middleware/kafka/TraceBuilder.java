@@ -57,7 +57,7 @@ public class TraceBuilder {
             double val;
 
             if (movingSensor) out.write("0");
-            else out.write(((float) x) + " " + ((float) y));
+            else out.write((((float) x) + " " + ((float) y)).replace('.', ','));
             out.newLine();
 
             for (int j = 0; j < n_values; j++) {
