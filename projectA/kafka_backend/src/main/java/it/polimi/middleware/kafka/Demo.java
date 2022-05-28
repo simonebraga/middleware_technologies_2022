@@ -40,9 +40,9 @@ public class Demo {
         //noinspection InfiniteLoopStatement
         while (true) {
 
-            toSend="{\"x\":" + (Math.random()*(max_x-min_x)-min_x);
-            toSend+=",\"y\":" + (Math.random()*(max_y-min_y)-min_y);
-            toSend+=",\"val\":" + (Math.random()*(max_val-min_val)-min_val) + "}";
+            toSend="{\"x\":" + (Math.random()*(max_x-min_x)+min_x);
+            toSend+=",\"y\":" + (Math.random()*(max_y-min_y)+min_y);
+            toSend+=",\"val\":" + (Math.random()*(max_val-min_val)+min_val) + "}";
 
             producer.send(new ProducerRecord<>(topic, null, toSend));
 
