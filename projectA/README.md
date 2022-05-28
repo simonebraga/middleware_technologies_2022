@@ -9,7 +9,8 @@
 | What | Who | How much |
 |:-|:-:|:-|
 | Documentation | Marco, Simone | Completed! |
-| Spark | Simone | Work in progress... |
+| Presentation | Simone | Completed! |
+| Spark | Simone | Completed! |
 | Kafka | Simone | Completed! |
 | Contiki-NG | Marco, Simone | Work in progress... |
 | MPI | Alessandro | Work in progress... |
