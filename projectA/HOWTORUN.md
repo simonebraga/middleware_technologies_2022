@@ -6,8 +6,8 @@ This file contains instructions on how to correctly run the back-end modules (Ka
 
 As a first step, it is necessary to download the following .zip folders and extract them:
 
-* [Kafka_CBIN](https://polimi365-my.sharepoint.com/:u:/r/personal/10529465_polimi_it/Documents/Materiale%20Middleware/ProjectA/Kafka_CBIN.zip?csf=1&web=1&e=UiyjY2)
-* [Spark_CBIN](https://polimi365-my.sharepoint.com/:u:/r/personal/10529465_polimi_it/Documents/Materiale%20Middleware/ProjectA/Spark_CBIN.zip?csf=1&web=1&e=b091dJ)
+* [Kafka_CBIN](https://polimi365-my.sharepoint.com/:u:/g/personal/10529465_polimi_it/ER5ru0lTFtZMvfoSNM808vUBr8eaz0EC551KSh8e_40E9g?e=POKY2u)
+* [Spark_CBIN](https://polimi365-my.sharepoint.com/:u:/g/personal/10529465_polimi_it/EbJIqhkMHhhLvezxg6hG5BEBXYi8SMfXU6sqsF1BE3GCzw?e=9HnzTl)
 
 **NOTE: A working JVM (at least Java 11) is required to run the packages.**
 
@@ -52,7 +52,8 @@ Usage `./D2-run_subscriber.sh topic_name`
 </p>
 
 * `5-start-local.sh` sets up a local Spark cluster with a master and a worker.
-* `6-start_submit.sh` submits to the Spark cluster the back-end application to be run.
+* `6-submit_cleaning_enrichment.sh` submits to the Spark cluster the back-end module for data cleaning and enrichment.
+* `7-submit_analysis.sh` submits to the Spark cluster the back-end module for data analysis.
 
 <br/>
 
