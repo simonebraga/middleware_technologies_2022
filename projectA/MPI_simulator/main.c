@@ -32,8 +32,10 @@ void initialize_parameters();
 void do_simulation(int vehicles_quota, int people_quota, int myRank);
 void produce_sensor_data(struct agent *people, struct agent *vehicles,
                          int people_quota, int vehicles_quota, int socket_fd,
-                         struct sockaddr_in server_addr);
+                         struct sockaddr_in server_addr,
+                         float *sensor_intensities, int num);
 void initialize_random_coordinates(struct agent *agents, int agents_quota);
+void reset_sensor_intensities(float *sensor_intensities, int lenght);
 void advance_person(struct agent *agent);
 void advance_vehicle(struct agent *agent);
 float distance(struct agent *agent, int x_sensor, int y_sensor);
@@ -43,6 +45,8 @@ float decibels(float intensity);
 void print_region(struct agent *people, struct agent *vehicles);
 void populate_new_record(char *record, float x_coordinate, float y_coordinate,
                          float noise);
+void prepare_and_send_data(int socket_fd, struct sockaddr_in server_addr,
+                           float *sensor_intensities, int num);
 float lat_coordinate(float origin_coordinate, float offset_meters);
 float lon_coordinate(float origin_coordinate, float offset_meters,
                      float latitude);
@@ -125,6 +129,9 @@ int main(int argc, char *argv[]) {
   MPI_Comm_size(MPI_COMM_WORLD, &nProcesses);
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
+  // add entropy to random functions
+  srand(myRank);
+  
   // initialize kafka network address to default values
   kafka_bridge_port = KAFKA_BRIDGE_DEFAULT_PORT;
   strcpy(kafka_bridge_address_string, KAFKA_BRIDGE_DEFAULT_ADDR);
@@ -323,11 +330,11 @@ int missing_parameter() {
   }
   for (int i = 0; i < N_FLOAT_PARAMETERS; i++) {
     if (float_parameters[i] == 0) {
-      if( (i == lat || i == lon) && debugFlag){
-	printf("WARNING: coordinate set to 0\n");
-      }else {
-	// returning i doesn't signal error if i == 0
-	return i + N_INT_PARAMETERS + 1;
+      if ((i == lat || i == lon) && debugFlag) {
+        printf("WARNING: coordinate set to 0\n");
+      } else {
+        // returning i doesn't signal error if i == 0
+        return i + N_INT_PARAMETERS + 1;
       }
     }
   }
@@ -356,18 +363,38 @@ void do_simulation(int vehicles_quota, int people_quota, int myRank) {
   initialize_random_coordinates(vehicles, vehicles_quota);
 
   struct sockaddr_in kafka_bridge_addr;
-  kafka_bridge_addr.sin_family = AF_INET;
-  kafka_bridge_addr.sin_port = htons(kafka_bridge_port);
-  inet_pton(AF_INET, kafka_bridge_address_string, &kafka_bridge_addr.sin_addr);
+  int errConnection = 0;
+  int socket_fd;
 
-  int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+  if (myRank == 0) {
+    kafka_bridge_addr.sin_family = AF_INET;
+    kafka_bridge_addr.sin_port = htons(kafka_bridge_port);
+    inet_pton(AF_INET, kafka_bridge_address_string,
+              &kafka_bridge_addr.sin_addr);
 
-  int errConnection = connect(socket_fd, (struct sockaddr *)&kafka_bridge_addr,
-                              sizeof(kafka_bridge_addr));
+    socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+
+    errConnection = connect(socket_fd, (struct sockaddr *)&kafka_bridge_addr,
+                            sizeof(kafka_bridge_addr));
+  }
+
   if (errConnection != 0) { // there was an error
     printf("Unable to connect: errno %d\n", errno);
+    MPI_Finalize();
     return;
   } else {
+
+    int num_of_sensors = ((int_parameters[W] / VIRTUAL_SENSOR_SPACING) + 1) *
+                         ((int_parameters[L] / VIRTUAL_SENSOR_SPACING) + 1);
+
+    float sensor_intensities[num_of_sensors];
+    reset_sensor_intensities(sensor_intensities, num_of_sensors);
+
+    // printf("%d m / %d m = %d sensors\n", int_parameters[W],
+    // VIRTUAL_SENSOR_SPACING, (int_parameters[W] / VIRTUAL_SENSOR_SPACING));
+    // printf("%d m / %d m = %d sensors\n", int_parameters[L],
+    // VIRTUAL_SENSOR_SPACING, (int_parameters[L] / VIRTUAL_SENSOR_SPACING));
+    // printf("total expected: %d sensors\n", num_of_sensors);
 
     while (1) { // for each time step
       for (int i = 0; i < people_quota; i++) {
@@ -376,10 +403,32 @@ void do_simulation(int vehicles_quota, int people_quota, int myRank) {
       for (int i = 0; i < vehicles_quota; i++) {
         advance_vehicle(vehicles + i);
       }
-      if (debugFlag && myRank == 0)
-        print_region(people, vehicles);
+      // if (debugFlag && myRank == 0)
+      //   print_region(people, vehicles);
       produce_sensor_data(people, vehicles, people_quota, vehicles_quota,
-                          socket_fd, kafka_bridge_addr);
+                          socket_fd, kafka_bridge_addr, sensor_intensities,
+                          num_of_sensors);
+      if (debugFlag)
+        printf("process %d - sensor (0; 0): %f\n", myRank,
+               sensor_intensities[0]);
+
+      // reduce in place
+      if (myRank == 0)
+        MPI_Reduce(MPI_IN_PLACE, sensor_intensities, num_of_sensors, MPI_FLOAT,
+                   MPI_SUM, 0, MPI_COMM_WORLD);
+      else
+        MPI_Reduce(sensor_intensities, sensor_intensities, num_of_sensors,
+                   MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
+
+      if (debugFlag && myRank == 0)
+        printf("final sensor (0; 0): %f\n", sensor_intensities[0]);
+
+      if (myRank == 0)
+	prepare_and_send_data(socket_fd, kafka_bridge_addr, sensor_intensities,
+                            num_of_sensors);
+
+      reset_sensor_intensities(sensor_intensities, num_of_sensors);
+
       sleep(float_parameters[t]);
     }
   }
@@ -514,9 +563,13 @@ float decibels(float intensity) {
   placed at integer coordinates in the area */
 void produce_sensor_data(struct agent *people, struct agent *vehicles,
                          int people_quota, int vehicles_quota, int socket_fd,
-                         struct sockaddr_in server_addr) {
-  for (int x_sensor = 0; x_sensor <= int_parameters[L]; x_sensor += VIRTUAL_SENSOR_SPACING) {
-    for (int y_sensor = 0; y_sensor <= int_parameters[W]; y_sensor += VIRTUAL_SENSOR_SPACING) {
+                         struct sockaddr_in server_addr,
+                         float *sensor_intensities, int num) {
+  int sensor_idx = 0;
+  for (int x_sensor = 0; x_sensor <= int_parameters[L];
+       x_sensor += VIRTUAL_SENSOR_SPACING) {
+    for (int y_sensor = 0; y_sensor <= int_parameters[W];
+         y_sensor += VIRTUAL_SENSOR_SPACING) {
       float dist;
       float intensity_sensor = 0.0;
 
@@ -541,38 +594,11 @@ void produce_sensor_data(struct agent *people, struct agent *vehicles,
         }
       }
 
-      float noise_sensor = decibels(intensity_sensor);
-      if (debugFlag &&
-          (noise_sensor == INFINITY)) { // not the best, but we need to check
-                                        // only INFINITY, while the negative case
-                                        // is handled later
-        printf("ERROR: noise_sensor is %f, and generating intensity_sensor is "
-               "%f\n",
-               noise_sensor, intensity_sensor);
-      }
-      if (noise_sensor < 0){
-	noise_sensor = 0.0;
-	if(debugFlag){
-	  printf("INFO: setting negative noise to 0.0\n");
-	}
-      }
-      // TODO: send noise_sensor to coordinator process?
-      // TODO DOING: and then to the Kafka cluster
-      char record[RECORD_BUFFER_SIZE];
-      float y_coordinate = lat_coordinate(float_parameters[lat], y_sensor);
-      float x_coordinate =
-          lon_coordinate(float_parameters[lon], x_sensor, y_coordinate);
+      // now that we have the total intensity contribute, we must reduce it
+      // by sending to the coordinator process
+      sensor_intensities[sensor_idx] = intensity_sensor;
 
-      populate_new_record(record, x_coordinate, y_coordinate, noise_sensor);
-      send(socket_fd, record, strlen(record), 0);
-
-      if(debugFlag && noise_sensor != -INFINITY && noise_sensor < minimum_noise){
-	minimum_noise = noise_sensor;
-	printf("new minimum: %f\n", minimum_noise);
-      }
-      if (debugFlag) {
-	printf("TEST: %s\n", record);
-      }
+      sensor_idx++;
     }
   }
 }
@@ -600,3 +626,58 @@ float secf(float angle) { return 1 / cosf(angle); }
 float degree(float radians) { return radians * 180 / PI; }
 
 float radians(float degrees) { return degrees * PI / 180; }
+
+void reset_sensor_intensities(float *sensor_intensities, int lenght) {
+  for (int i = 0; i < lenght; i++) {
+    sensor_intensities[i] = 0.0;
+  }
+  return;
+}
+
+void prepare_and_send_data(int socket_fd, struct sockaddr_in server_addr,
+                           float *sensor_intensities, int num) {
+
+  int sensor_idx = 0;
+  for (int x_sensor = 0; x_sensor <= int_parameters[L];
+       x_sensor += VIRTUAL_SENSOR_SPACING) {
+    for (int y_sensor = 0; y_sensor <= int_parameters[W];
+         y_sensor += VIRTUAL_SENSOR_SPACING) {
+
+      float noise_sensor = decibels(sensor_intensities[sensor_idx]);
+      if (debugFlag &&
+          (noise_sensor == INFINITY)) { // not the best, but we need to check
+                                        // only INFINITY, while the negative
+                                        // case is handled later
+        printf("ERROR: noise_sensor is %f, and generating intensity_sensor is "
+               "%f\n",
+               noise_sensor, sensor_intensities[sensor_idx]);
+      }
+      if (noise_sensor < 0) {
+        noise_sensor = 0.0;
+        // if (debugFlag) {
+        //   printf("INFO: setting negative noise to 0.0\n");
+        // }
+      }
+      // TODO DOING: send noise_sensor to coordinator process?
+      // TODO DOING: and then to the Kafka cluster
+      char record[RECORD_BUFFER_SIZE];
+      float y_coordinate = lat_coordinate(float_parameters[lat], y_sensor);
+      float x_coordinate =
+          lon_coordinate(float_parameters[lon], x_sensor, y_coordinate);
+
+      populate_new_record(record, x_coordinate, y_coordinate, noise_sensor);
+      send(socket_fd, record, strlen(record), 0);
+
+      if (debugFlag && noise_sensor != -INFINITY &&
+          noise_sensor < minimum_noise) {
+        minimum_noise = noise_sensor;
+        printf("new minimum: %f\n", minimum_noise);
+      }
+      // if (debugFlag) {
+      //   printf("TEST: %s\n", record);
+      // }
+
+      sensor_idx++;
+    }
+  }
+}
