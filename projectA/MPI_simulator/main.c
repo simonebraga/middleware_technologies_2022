@@ -323,8 +323,12 @@ int missing_parameter() {
   }
   for (int i = 0; i < N_FLOAT_PARAMETERS; i++) {
     if (float_parameters[i] == 0) {
-      // returning i doesn't signal error if i == 0
-      return i + N_INT_PARAMETERS + 1;
+      if( (i == lat || i == lon) && debugFlag){
+	printf("WARNING: coordinate set to 0\n");
+      }else {
+	// returning i doesn't signal error if i == 0
+	return i + N_INT_PARAMETERS + 1;
+      }
     }
   }
   return 0;
