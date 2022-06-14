@@ -18,7 +18,7 @@
 #define KAFKA_BRIDGE_DEFAULT_PORT 9999
 #define KAFKA_BRIDGE_DEFAULT_ADDR "127.0.0.1"
 // distance (in m) between contiguous virtual "sensors"
-#define VIRTUAL_SENSOR_SPACING 10
+#define VIRTUAL_SENSOR_SPACING 100
 
 // general TODO: why sometimes people don't move?
 
@@ -131,7 +131,7 @@ int main(int argc, char *argv[]) {
 
   // add entropy to random functions
   srand(myRank);
-  
+
   // initialize kafka network address to default values
   kafka_bridge_port = KAFKA_BRIDGE_DEFAULT_PORT;
   strcpy(kafka_bridge_address_string, KAFKA_BRIDGE_DEFAULT_ADDR);
@@ -388,7 +388,9 @@ void do_simulation(int vehicles_quota, int people_quota, int myRank) {
                          ((int_parameters[L] / VIRTUAL_SENSOR_SPACING) + 1);
 
     float sensor_intensities[num_of_sensors];
+    float reduced_sensor_intensities[num_of_sensors];
     reset_sensor_intensities(sensor_intensities, num_of_sensors);
+    reset_sensor_intensities(reduced_sensor_intensities, num_of_sensors);
 
     // printf("%d m / %d m = %d sensors\n", int_parameters[W],
     // VIRTUAL_SENSOR_SPACING, (int_parameters[W] / VIRTUAL_SENSOR_SPACING));
@@ -396,7 +398,9 @@ void do_simulation(int vehicles_quota, int people_quota, int myRank) {
     // VIRTUAL_SENSOR_SPACING, (int_parameters[L] / VIRTUAL_SENSOR_SPACING));
     // printf("total expected: %d sensors\n", num_of_sensors);
 
+    //    int iterations = 0;
     while (1) { // for each time step
+      // iterations++;
       for (int i = 0; i < people_quota; i++) {
         advance_person(people + i);
       }
@@ -413,21 +417,29 @@ void do_simulation(int vehicles_quota, int people_quota, int myRank) {
                sensor_intensities[0]);
 
       // reduce in place
-      if (myRank == 0)
-        MPI_Reduce(MPI_IN_PLACE, sensor_intensities, num_of_sensors, MPI_FLOAT,
-                   MPI_SUM, 0, MPI_COMM_WORLD);
-      else
-        MPI_Reduce(sensor_intensities, sensor_intensities, num_of_sensors,
-                   MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
-
+      //      if (myRank == 0){
+      //	printf("Doing reduce...\n");
+      MPI_Barrier(MPI_COMM_WORLD);
+      MPI_Reduce(sensor_intensities, reduced_sensor_intensities, num_of_sensors,
+                 MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
+      //	printf("Reduce done\n");
+      // }
+      // else{
+      //   MPI_Reduce(sensor_intensities, sensor_intensities, num_of_sensors,
+      //              MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
+      // }
       if (debugFlag && myRank == 0)
-        printf("final sensor (0; 0): %f\n", sensor_intensities[0]);
+        printf("final sensor (0; 0): %f\n", reduced_sensor_intensities[0]);
 
-      if (myRank == 0)
-	prepare_and_send_data(socket_fd, kafka_bridge_addr, sensor_intensities,
-                            num_of_sensors);
+      if (myRank == 0) {
+        //	printf("sending data...\n");
+        prepare_and_send_data(socket_fd, kafka_bridge_addr,
+                              reduced_sensor_intensities, num_of_sensors);
+        //	printf("data sent\n");
+      }
 
       reset_sensor_intensities(sensor_intensities, num_of_sensors);
+      reset_sensor_intensities(reduced_sensor_intensities, num_of_sensors);
 
       sleep(float_parameters[t]);
     }
@@ -605,8 +617,8 @@ void produce_sensor_data(struct agent *people, struct agent *vehicles,
 
 void populate_new_record(char *record, float x_coordinate, float y_coordinate,
                          float noise) {
-  sprintf(record, "{\"x\":%f,\"y\":%f,\"val\":%f}\n", x_coordinate,
-          y_coordinate, noise);
+  sprintf(record, "{\"x\":%f,\"y\":%f,\"val\":%f}\n", x_coordinate / 1000,
+          y_coordinate / 1000, noise);
 }
 
 float lat_coordinate(float origin_coordinate, float offset_meters) {
@@ -661,12 +673,15 @@ void prepare_and_send_data(int socket_fd, struct sockaddr_in server_addr,
       // TODO DOING: send noise_sensor to coordinator process?
       // TODO DOING: and then to the Kafka cluster
       char record[RECORD_BUFFER_SIZE];
-      float y_coordinate = lat_coordinate(float_parameters[lat], y_sensor);
-      float x_coordinate =
-          lon_coordinate(float_parameters[lon], x_sensor, y_coordinate);
-
+      // float y_coordinate = lat_coordinate(float_parameters[lat], y_sensor);
+      // float x_coordinate =
+      //     lon_coordinate(float_parameters[lon], x_sensor, y_coordinate);
+      float y_coordinate = float_parameters[lat] + y_sensor;
+      float x_coordinate = float_parameters[lon] + x_sensor;
       populate_new_record(record, x_coordinate, y_coordinate, noise_sensor);
+      //      printf("sending...\n");
       send(socket_fd, record, strlen(record), 0);
+      //      printf("sent...\n");
 
       if (debugFlag && noise_sensor != -INFINITY &&
           noise_sensor < minimum_noise) {
