@@ -14,6 +14,7 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 public class Demo implements Runnable {
 
@@ -54,7 +55,9 @@ public class Demo implements Runnable {
         while (true) {
             final ConsumerRecords<String, String> records = consumer.poll(Duration.of(10, ChronoUnit.SECONDS));
             for (final ConsumerRecord<String, String> record : records) {
-                producer.send(new ProducerRecord<>(topic_in, record.key(), "[RESULT] " + record.value()));
+                try { TimeUnit.SECONDS.sleep(10); }
+                catch (InterruptedException ignored) {}
+                producer.send(new ProducerRecord<>(topic_in, record.key(), "/result/folder"));
             }
         }
     }
