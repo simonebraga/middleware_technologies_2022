@@ -13,4 +13,4 @@
 | Spark | Simone | Completed! |
 | Kafka | Simone | Completed! |
 | Contiki-NG | Marco, Simone | Completed! |
-| MPI | Alessandro | Completed! |
+| MPI | Alessandro | Work in progress... |
