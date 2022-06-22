@@ -65,6 +65,11 @@ public class App {
                 "Type \"help\" for the list of commands.\n");
     }
 
+    private static void notExistingJob() {
+        System.out.println("\nYou tried to submit a job that doesn't exist! Operation aborted.\n" +
+                "Type \"help\" for the list of commands.\n");
+    }
+
     private static void printList() {
         String[] list = notificationList.get();
         if (list.length > 0) {
@@ -127,15 +132,16 @@ public class App {
             switch (split[0]) {
                 case "submit":
                     if (split.length == 5) {
-                        //TODO If needed, implement a check on the job_type
-                        key = keyGen(keyLength);
-                        producer.send(new ProducerRecord<>(topic_out, key,
-                                "{\"job_type\":\"" + split[1] +
-                                        "\",\"source\":\"" + split[2] +
-                                        "\",\"parameters\":\"" + split[3] +
-                                        "\",\"results\":\"" + split[4] + "\"}"));
-                        notificationList.add(key);
-                        submittedJob(key);
+                        if (jobList.getJobArrayList().contains(split[1])) {
+                            key = keyGen(keyLength);
+                            producer.send(new ProducerRecord<>(topic_out, key,
+                                    "{\"job_type\":\"" + split[1] +
+                                            "\",\"source\":\"" + split[2] +
+                                            "\",\"parameters\":\"" + split[3] +
+                                            "\",\"results\":\"" + split[4] + "\"}"));
+                            notificationList.add(key);
+                            submittedJob(key);
+                        } else notExistingJob();
                     } else badSyntax();
                     break;
                 case "retrieve":
@@ -159,7 +165,6 @@ public class App {
             }
         }
 
-        if (debugMode)
-            System.exit(0);
+        System.exit(0);
     }
 }

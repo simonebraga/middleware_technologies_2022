@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 public class JobList implements Serializable {
 
@@ -31,5 +33,13 @@ public class JobList implements Serializable {
 
     public Job[] getJobList() {
         return jobList;
+    }
+
+    // Return an ArrayList of strings containing the ID of the jobs (shall be used for fast lookup)
+    public ArrayList<String> getJobArrayList() {
+        String[] jobIDList = new String[jobList.length];
+        for (int i = 0; i < jobList.length; i++)
+            jobIDList[i] = jobList[i].getId();
+        return new ArrayList<>(Arrays.asList(jobIDList));
     }
 }
