@@ -1,5 +1,9 @@
 package it.polimi.middleware.kafka;
 
+import it.polimi.middleware.kafka.utils.Job;
+import it.polimi.middleware.kafka.utils.JobList;
+import it.polimi.middleware.kafka.utils.ListeningDaemon;
+import it.polimi.middleware.kafka.utils.NotificationList;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -28,17 +32,16 @@ public class App {
         } return output.toString();
     }
 
-    private static void printInstructions() {
+    private static void printInstructions(JobList jobList) {
         System.out.println("\nType \"quit\" to stop the application or run one of the following commands:\n" +
                 "\t\"submit <JOB_TYPE>\" - Submit a job to the back-end. Remember the job ID to get your result!\n" +
                 "\t\"retrieve <JOB_ID>\" - Add the given ID to the list of jobs you want to be notified when completed.\n" +
                 "\t\"list\" - Print the notification list.\n" +
-                "\t\"help\" - List of the possible commands.\n" +
-                "\n<JOB_TYPE> shall be replaced with one of the following:\n" +
-                "\t\"image-compression <SOURCE_IMAGE> <COMPRESSION_RATIO> <RESULT_FOLDER>\"\n" +
-                "\t\"document-conversion <SOURCE_DOCUMENT> <TARGET_EXTENSION> <RESULT_FOLDER>\"\n" +
-                "\t\"text-formatting <SOURCE_TEXT> <FORMATTING_RULES> <RESULT_FOLDER>\"\n" +
-                "\nAt any time, you can type \"help\" for the list of commands.\n");
+                "\t\"help\" - List of the possible commands.\n");
+        System.out.println("<JOB_TYPE> shall be replaced with one of the following:");
+        for (Job job : jobList.getJobList()) {
+            System.out.println("\t\"" + job.getId() + "\" <SOURCE_IMAGE> <" + job.getParam_name() + "> <RESULT_FOLDER>");
+        } System.out.println();
     }
 
     private static void submittedJob(String key) {
@@ -80,8 +83,13 @@ public class App {
         final String bootstrap = args.length > 0 ? args[0] : "localhost:9092";
         final String topic_out = args.length > 1 ? args[1] : "pendingJobs";
         final String topic_in = args.length > 2 ? args[2] : "completedJobs";
-        final int keyLength = args.length > 3 ? Integer.parseInt(args[3]) : 8;
-        final boolean debugMode = args.length <= 4 || Boolean.parseBoolean(args[4]);
+        final String mapFilePath = args.length > 3 ? args[3] : "src/main/resources/";
+        final String mapFileName = args.length > 4 ? args[4] : "job_list.json";
+        final int keyLength = args.length > 5 ? Integer.parseInt(args[5]) : 8;
+        final boolean debugMode = args.length <= 6 || Boolean.parseBoolean(args[6]);
+
+        JobList jobList = new JobList();
+        jobList.initJobList(mapFilePath + mapFileName);
 
         // If the flag for the debug mode is set, run a thread that simulates the completion of jobs
         if (debugMode) {
@@ -112,7 +120,7 @@ public class App {
 
         // Effective implementation of the CLI
         System.out.println("[LOG] Application started");
-        printInstructions();
+        printInstructions(jobList);
         Scanner in = new Scanner(System.in); String s; String[] split; String key;
         while (!(s=in.nextLine().trim()).equals("quit")) {
             split = s.split("\\s+");
@@ -143,7 +151,7 @@ public class App {
                     break;
                 case "help":
                     if (split.length == 1)
-                        printInstructions();
+                        printInstructions(jobList);
                     else badSyntax();
                     break;
                 default:

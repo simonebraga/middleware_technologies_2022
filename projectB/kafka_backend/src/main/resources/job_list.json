@@ -1,0 +1,5 @@
+[
+  {"id": "image-compression", "param_name": "COMPRESSION_RATIO"},
+  {"id": "document-conversion", "param_name": "TARGET_EXTENSION"},
+  {"id": "text-formatting", "param_name": "FORMATTING_RULES"}
+]
