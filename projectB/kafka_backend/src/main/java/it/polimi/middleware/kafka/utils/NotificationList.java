@@ -1,4 +1,4 @@
-package it.polimi.middleware.kafka;
+package it.polimi.middleware.kafka.utils;
 
 import java.util.ArrayList;
 

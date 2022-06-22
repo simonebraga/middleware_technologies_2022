@@ -1,4 +1,4 @@
-package it.polimi.middleware.kafka;
+package it.polimi.middleware.kafka.utils;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
