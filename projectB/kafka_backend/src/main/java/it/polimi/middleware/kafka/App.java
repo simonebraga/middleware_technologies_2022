@@ -32,6 +32,17 @@ public class App {
         } return output.toString();
     }
 
+    // Creates a new consumer with random group ID
+    private static KafkaConsumer<String, String> consumerGen(String bootstrap, String groupId, String strategy) {
+        final Properties consumerProps = new Properties();
+        consumerProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrap);
+        consumerProps.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+        consumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, strategy);
+        consumerProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        consumerProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        return new KafkaConsumer<>(consumerProps);
+    }
+
     private static void printInstructions(JobList jobList) {
         System.out.println("\nType \"quit\" to stop the application or run one of the following commands:\n" +
                 "\t\"submit <JOB_TYPE>\" - Submit a job to the back-end. Remember the job ID to get your result!\n" +
@@ -50,8 +61,25 @@ public class App {
                 "Type \"help\" for the list of commands.\n");
     }
 
-    private static void retrievedJob(String key) {
-        System.out.println("\nThe ID <" + key + "> was added to the notification list.\n" +
+    private static void waitCheck() {
+        System.out.println("\nChecking completion for the requested key...");
+    }
+
+    private static void retrievedJob(String key, String value) {
+        System.out.println("\nJob with ID <" + key + "> found!\n" +
+                "Check the result folder \"" + value + "\" for the outcome.\n" +
+                "Type \"help\" for the list of commands.\n");
+    }
+
+    private static void notificationAdded(String key) {
+        System.out.println("\nThe job with the key you are searching for is not yet completed.\n" +
+                "The ID <" + key + "> was added to the notification list.\n" +
+                "Type \"help\" for the list of commands.\n");
+    }
+
+    private static void notificationRefused(String key) {
+        System.out.println("\nThe job with the key you are searching for is not yet completed.\n" +
+                "The ID <" + key + "> is already in the notification list.\n" +
                 "Type \"help\" for the list of commands.\n");
     }
 
@@ -68,6 +96,14 @@ public class App {
     private static void notExistingJob() {
         System.out.println("\nYou tried to submit a job that doesn't exist! Operation aborted.\n" +
                 "Type \"help\" for the list of commands.\n");
+    }
+
+    // Pray this method is never called
+    private static void tragedy() {
+        System.out.println("\n[WARNING] The unthinkable happened.\n" +
+                "[WARNING] Keys of different jobs conflicted.\n" +
+                "[WARNING] Try to select a higher key length at application startup.\n");
+        System.exit(-1);
     }
 
     private static void printList() {
@@ -107,15 +143,12 @@ public class App {
         producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrap);
         producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        //noinspection resource
         final KafkaProducer<String, String> producer = new KafkaProducer<>(producerProps);
 
-        // Set the properties for the consumer (needed to retrieve completed jobs)
-        final Properties consumerProps = new Properties();
-        consumerProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrap);
-        consumerProps.put(ConsumerConfig.GROUP_ID_CONFIG, "cli");
-        consumerProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-        consumerProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-        final KafkaConsumer<String, String> consumer = new KafkaConsumer<>(consumerProps);
+        // Create a new consumer (needed to retrieve completed jobs)
+        // Consumer group ID randomized for simplicity
+        final KafkaConsumer<String, String> consumer = consumerGen(bootstrap, keyGen(keyLength), "latest");
 
         consumer.subscribe(Collections.singletonList(topic_in));
 
@@ -139,15 +172,24 @@ public class App {
                                             "\",\"source\":\"" + split[2] +
                                             "\",\"parameters\":\"" + split[3] +
                                             "\",\"results\":\"" + split[4] + "\"}"));
-                            notificationList.add(key);
-                            submittedJob(key);
+                            if (notificationList.add(key))
+                                submittedJob(key);
+                            else tragedy();
                         } else notExistingJob();
                     } else badSyntax();
                     break;
                 case "retrieve":
                     if (split.length == 2) {
-                        notificationList.add(split[1]);
-                        retrievedJob(split[1]);
+                        final KafkaConsumer<String, String> retroactiveConsumer = consumerGen(bootstrap, keyGen(keyLength), "earliest");
+                        retroactiveConsumer.subscribe(Collections.singletonList(topic_in));
+                        waitCheck();
+                        String check = ListeningDaemon.retroactiveCheck(retroactiveConsumer, split[1]);
+                        if (check != null)
+                            retrievedJob(split[1], check);
+                        else if (notificationList.add(split[1]))
+                            notificationAdded(split[1]);
+                        else
+                            notificationRefused(split[1]);
                     } else badSyntax();
                     break;
                 case "list":

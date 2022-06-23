@@ -12,6 +12,16 @@ public class ListeningDaemon implements Runnable {
     private final KafkaConsumer<String, String> consumer;
     private final NotificationList notificationList;
 
+    // Returns null if key is not found
+    // Pass a consumer with new randomized ID each time this function is called
+    public static String retroactiveCheck(KafkaConsumer<String, String> retroactiveConsumer, String key) {
+        final ConsumerRecords<String, String> records = retroactiveConsumer.poll(Duration.of(1, ChronoUnit.SECONDS));
+        for (final ConsumerRecord<String, String> record : records)
+            if (record.key().equals(key))
+                return record.value();
+        return null;
+    }
+
     public ListeningDaemon(KafkaConsumer<String, String> consumer, NotificationList notificationList) {
         this.consumer = consumer;
         this.notificationList = notificationList;
