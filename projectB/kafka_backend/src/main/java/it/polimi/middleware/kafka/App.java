@@ -1,9 +1,9 @@
 package it.polimi.middleware.kafka;
 
-import it.polimi.middleware.kafka.utils.Job;
-import it.polimi.middleware.kafka.utils.JobList;
-import it.polimi.middleware.kafka.utils.ListeningDaemon;
-import it.polimi.middleware.kafka.utils.NotificationList;
+import java.util.Collections;
+import java.util.Properties;
+import java.util.Scanner;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -12,9 +12,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 
-import java.util.Collections;
-import java.util.Properties;
-import java.util.Scanner;
+import it.polimi.middleware.kafka.utils.NotificationList;
 
 public class App {
 

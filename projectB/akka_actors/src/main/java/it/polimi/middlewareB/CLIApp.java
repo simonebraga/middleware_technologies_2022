@@ -1,14 +1,14 @@
 package it.polimi.middlewareB;
 
+import java.util.Properties;
+import java.util.Scanner;
+import java.util.concurrent.ExecutionException;
+
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-
-import java.util.Properties;
-import java.util.Scanner;
-import java.util.concurrent.ExecutionException;
 
 /**
  * Hello world!
