@@ -25,12 +25,16 @@ public class ClusterStarter {
 
 		System.out.println("Sending a basic message...");
 
-		mainDispatcher.tell(new TextFormattingJobMessage("/simple/input", "simple/output", "s/\t/    /"), null);
+		mainDispatcher.tell(new TextFormattingJobMessage("/simple/input", "simple/output", "s/\\t/    /"), null);
 
 		mainDispatcher.tell(new ImageCompressionJobMessage("/input", "/output", 15), null);
 
 		mainDispatcher.tell(new DocumentConversionJobMessage("/another/input", "/another/output", ".pdf"), null);
-
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		}
 		sys.terminate();
 		// Scanner keyboard = new Scanner(System.in);
 		// keyboard.nextLine();
