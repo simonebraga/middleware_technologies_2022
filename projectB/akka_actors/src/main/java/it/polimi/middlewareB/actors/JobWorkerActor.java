@@ -21,7 +21,7 @@ public class JobWorkerActor extends AbstractActorWithStash {
     }
 
     public void echoTextFormattingMessage(TextFormattingJobMessage msg) throws JobExecutionException {
-        if(random.nextDouble() > probabilityOfFailure){
+        if(random.nextDouble() < probabilityOfFailure){
             stash();
             System.out.println("Failure!");
             throw new JobExecutionException("Exception in Text Formatting");
@@ -34,7 +34,7 @@ public class JobWorkerActor extends AbstractActorWithStash {
     }
 
     public void echoDocumentConversionMessage(DocumentConversionJobMessage msg) throws JobExecutionException {
-        if(random.nextDouble() > probabilityOfFailure){
+        if(random.nextDouble() < probabilityOfFailure){
             stash();
             System.out.println("Failure!");
             throw new JobExecutionException("Exception in Document Conversion");
@@ -46,7 +46,7 @@ public class JobWorkerActor extends AbstractActorWithStash {
     }
 
     public void echoImageCompressionMessage(ImageCompressionJobMessage msg) throws JobExecutionException {
-        if(random.nextDouble() > probabilityOfFailure){
+        if(random.nextDouble() < probabilityOfFailure){
             stash();
             System.out.println("Failure!");
             throw new JobExecutionException("Exception in Image Compression");
