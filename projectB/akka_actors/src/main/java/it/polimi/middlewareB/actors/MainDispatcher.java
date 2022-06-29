@@ -1,3 +1,4 @@
+/*
 package it.polimi.middlewareB.actors;
 
 import java.time.Duration;
@@ -66,3 +67,4 @@ public class MainDispatcher extends AbstractActor {
 	}
 
 }
+*/
