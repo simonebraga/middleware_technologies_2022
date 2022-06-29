@@ -4,6 +4,7 @@ import akka.actor.AbstractActorWithStash;
 import it.polimi.middlewareB.JobExecutionException;
 import it.polimi.middlewareB.messages.DocumentConversionJobMessage;
 import it.polimi.middlewareB.messages.ImageCompressionJobMessage;
+import it.polimi.middlewareB.messages.JobCompletedMessage;
 import it.polimi.middlewareB.messages.TextFormattingJobMessage;
 
 import java.util.Random;
@@ -33,8 +34,8 @@ public class JobWorkerActor extends AbstractActorWithStash {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-        System.out.println(completionMessage);
-        //sender().tell(new JobCompletedMessage(completionMessage), self());
+        //System.out.println(completionMessage);
+        sender().tell(new JobCompletedMessage(completionMessage), self());
 
     }
 
@@ -53,8 +54,8 @@ public class JobWorkerActor extends AbstractActorWithStash {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-        System.out.println(completionMessage);
-        //sender().tell(new JobCompletedMessage(completionMessage), self());
+        //System.out.println(completionMessage);
+        sender().tell(new JobCompletedMessage(completionMessage), self());
     }
 
     public void echoImageCompressionMessage(ImageCompressionJobMessage msg) throws JobExecutionException {
@@ -72,8 +73,8 @@ public class JobWorkerActor extends AbstractActorWithStash {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-        System.out.println(completionMessage);
-        //sender().tell(new JobCompletedMessage(completionMessage), self());
+        //System.out.println(completionMessage);
+        sender().tell(new JobCompletedMessage(completionMessage), self());
 
     }
 
@@ -91,6 +92,6 @@ public class JobWorkerActor extends AbstractActorWithStash {
         unstashAll();
     }
 
-    private static final double probabilityOfFailure = 0.4;
+    private static final double probabilityOfFailure = 0.2;
     private static Random random;
 }
