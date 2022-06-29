@@ -6,6 +6,7 @@ import akka.util.Timeout;
 import it.polimi.middlewareB.JobExecutionException;
 import it.polimi.middlewareB.messages.DocumentConversionJobMessage;
 import it.polimi.middlewareB.messages.ImageCompressionJobMessage;
+import it.polimi.middlewareB.messages.JobCompletedMessage;
 import it.polimi.middlewareB.messages.TextFormattingJobMessage;
 
 import java.time.Duration;
@@ -18,6 +19,7 @@ public class JobSupervisorActor extends AbstractActor {
 				.match(TextFormattingJobMessage.class, this::startTextFormattingJob)
 				.match(DocumentConversionJobMessage.class, this::startDocumentConversionJob)
 				.match(ImageCompressionJobMessage.class, this::startImageCompressionJob)
+				.match(JobCompletedMessage.class, this::publishCompletedJob)
 				.build();
 	}
 
@@ -33,6 +35,9 @@ public class JobSupervisorActor extends AbstractActor {
 		workerActor.tell(msg, self());
 	}
 
+	private void publishCompletedJob(JobCompletedMessage msg){
+		System.out.println(msg.getNotificationMessage());
+	}
 	@Override
 	public void preStart() throws Exception {
 		super.preStart();
