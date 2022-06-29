@@ -1,12 +1,10 @@
 package it.polimi.middlewareB.actors;
 
-import akka.actor.AbstractActor;
 import akka.actor.AbstractActorWithStash;
 import it.polimi.middlewareB.JobExecutionException;
 import it.polimi.middlewareB.messages.DocumentConversionJobMessage;
 import it.polimi.middlewareB.messages.ImageCompressionJobMessage;
 import it.polimi.middlewareB.messages.TextFormattingJobMessage;
-import scala.Option;
 
 import java.util.Random;
 
@@ -26,10 +24,17 @@ public class JobWorkerActor extends AbstractActorWithStash {
             System.out.println("Failure!");
             throw new JobExecutionException("Exception in Text Formatting");
         }
-        System.out.println("Received " + msg.getClass().getName() + ": " +
+        String completionMessage = "Received " + msg.getClass().getName() + ": " +
                 "input " + msg.getInputFile() + ", " +
                 "output " + msg.getOutputFile() + ", " +
-                "formatting rules " + msg.getFormattingRules());
+                "formatting rules " + msg.getFormattingRules();
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        System.out.println(completionMessage);
+        //sender().tell(new JobCompletedMessage(completionMessage), self());
 
     }
 
@@ -39,10 +44,17 @@ public class JobWorkerActor extends AbstractActorWithStash {
             System.out.println("Failure!");
             throw new JobExecutionException("Exception in Document Conversion");
         }
-        System.out.println("Received " + msg.getClass().getName() + ": " +
+        String completionMessage = "Received " + msg.getClass().getName() + ": " +
                 "input " + msg.getInputFile() + ", " +
                 "output " + msg.getOutputFile() + ", " +
-                "target extension " + msg.getTargetExtension());
+                "target extension " + msg.getTargetExtension();
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        System.out.println(completionMessage);
+        //sender().tell(new JobCompletedMessage(completionMessage), self());
     }
 
     public void echoImageCompressionMessage(ImageCompressionJobMessage msg) throws JobExecutionException {
@@ -51,10 +63,17 @@ public class JobWorkerActor extends AbstractActorWithStash {
             System.out.println("Failure!");
             throw new JobExecutionException("Exception in Image Compression");
         }
-        System.out.println("Received " + msg.getClass().getName() + ": " +
+        String completionMessage = "Received " + msg.getClass().getName() + ": " +
                 "input " + msg.getInputFile() + ", " +
                 "output " + msg.getOutputFile() + ", " +
-                "compression ratio " + msg.getCompressionRatio());
+                "compression ratio " + msg.getCompressionRatio();
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        System.out.println(completionMessage);
+        //sender().tell(new JobCompletedMessage(completionMessage), self());
 
     }
 
@@ -69,9 +88,9 @@ public class JobWorkerActor extends AbstractActorWithStash {
     @Override
     public void postRestart(Throwable reason) throws Exception {
         super.postRestart(reason);
-        unstash();
+        unstashAll();
     }
 
-    private static final double probabilityOfFailure = 0.5;
+    private static final double probabilityOfFailure = 0.4;
     private static Random random;
 }
