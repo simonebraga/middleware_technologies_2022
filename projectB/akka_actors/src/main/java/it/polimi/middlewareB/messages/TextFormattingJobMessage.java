@@ -2,10 +2,11 @@ package it.polimi.middlewareB.messages;
 
 public class TextFormattingJobMessage {
 
-    public TextFormattingJobMessage(String inputFile, String outputFile, String formattingRules) {
+    public TextFormattingJobMessage(String inputFile, String outputFile, String formattingRules, int duration) {
         this.inputFile = inputFile;
         this.outputFile = outputFile;
         this.formattingRules = formattingRules;
+        this.duration = duration;
     }
 
     public String getInputFile() {
@@ -20,7 +21,12 @@ public class TextFormattingJobMessage {
         return formattingRules;
     }
 
+    public int getDuration(){
+        return duration;
+    }
+
     private final String inputFile;
     private final String outputFile;
     private final String formattingRules;
+    private final int duration;
 }

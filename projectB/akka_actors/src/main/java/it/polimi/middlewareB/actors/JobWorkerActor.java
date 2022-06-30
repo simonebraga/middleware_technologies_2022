@@ -30,7 +30,7 @@ public class JobWorkerActor extends AbstractActorWithStash {
                 "output " + msg.getOutputFile() + ", " +
                 "formatting rules " + msg.getFormattingRules();
         try {
-            Thread.sleep(1000);
+            Thread.sleep(msg.getDuration());
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -50,7 +50,7 @@ public class JobWorkerActor extends AbstractActorWithStash {
                 "output " + msg.getOutputFile() + ", " +
                 "target extension " + msg.getTargetExtension();
         try {
-            Thread.sleep(1000);
+            Thread.sleep(msg.getDuration());
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -69,7 +69,7 @@ public class JobWorkerActor extends AbstractActorWithStash {
                 "output " + msg.getOutputFile() + ", " +
                 "compression ratio " + msg.getCompressionRatio();
         try {
-            Thread.sleep(1000);
+            Thread.sleep(msg.getDuration());
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -92,6 +92,6 @@ public class JobWorkerActor extends AbstractActorWithStash {
         unstashAll();
     }
 
-    private static final double probabilityOfFailure = 0.2;
+    private static final double probabilityOfFailure = 0.0;
     private static Random random;
 }
