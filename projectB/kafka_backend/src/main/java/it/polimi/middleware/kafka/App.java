@@ -4,6 +4,9 @@ import java.util.Collections;
 import java.util.Properties;
 import java.util.Scanner;
 
+import it.polimi.middleware.kafka.utils.Job;
+import it.polimi.middleware.kafka.utils.JobList;
+import it.polimi.middleware.kafka.utils.ListeningDaemon;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -49,7 +52,7 @@ public class App {
                 "\t\"help\" - List of the possible commands.\n");
         System.out.println("<JOB_TYPE> shall be replaced with one of the following:");
         for (Job job : jobList.getJobList()) {
-            System.out.println("\t\"" + job.getId() + "\" <SOURCE_IMAGE> <" + job.getParam_name() + "> <RESULT_FOLDER>");
+            System.out.println("\t\"" + job.getName() + "\" <SOURCE_IMAGE> <" + job.getDuration() + "> <RESULT_FOLDER>");
         } System.out.println();
     }
 
@@ -166,10 +169,10 @@ public class App {
                         if (jobList.getJobArrayList().contains(split[1])) {
                             key = keyGen(keyLength);
                             producer.send(new ProducerRecord<>(topic_out, key,
-                                    "{\"job_type\":\"" + split[1] +
-                                            "\",\"source\":\"" + split[2] +
-                                            "\",\"parameters\":\"" + split[3] +
-                                            "\",\"results\":\"" + split[4] + "\"}"));
+                                    "{\"name\":\"" + split[1] +
+                                            "\",\"input\":\"" + split[2] +
+                                            "\",\"parameter\":\"" + split[3] +
+                                            "\",\"output\":\"" + split[4] + "\"}"));
                             if (notificationList.add(key))
                                 submittedJob(key);
                             else tragedy();
