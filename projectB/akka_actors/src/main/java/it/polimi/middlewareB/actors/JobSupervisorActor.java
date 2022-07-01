@@ -55,12 +55,12 @@ public class JobSupervisorActor extends AbstractActor {
 
 	private static SupervisorStrategy strategy =
 			//it means: restart after 50 retries, allowing infinite time to complete the job
-			new OneForOneStrategy(50, ClusterStarter.MAX_DURATION,
+		new OneForOneStrategy(-1, scala.concurrent.duration.Duration.Inf(), false,
 					DeciderBuilder.match(JobExecutionException.class,
 					e -> SupervisorStrategy.restart())
 					.build());
 	private ActorRef workerActor;
 
-	private static Timeout MAX_TIMEOUT = Timeout.create(Duration.ofMillis(Integer.MAX_VALUE));
+	//private static Timeout MAX_TIMEOUT = Timeout.create(Duration.ofMillis(Integer.MAX_VALUE));
 
 }
