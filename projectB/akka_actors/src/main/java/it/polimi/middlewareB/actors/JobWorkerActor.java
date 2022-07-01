@@ -92,6 +92,6 @@ public class JobWorkerActor extends AbstractActorWithStash {
         unstashAll();
     }
 
-    private static final double probabilityOfFailure = 0.0;
+    private static final double probabilityOfFailure = 0.3;
     private static Random random;
 }

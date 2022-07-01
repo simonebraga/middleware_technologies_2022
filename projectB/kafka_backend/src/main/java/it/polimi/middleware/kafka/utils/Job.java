@@ -4,30 +4,38 @@ import java.io.Serializable;
 
 public class Job implements Serializable {
 
-    private String id;
-    private String param_name;
+    private String name;
+    private int duration;
 
     public Job() {
     }
 
-    public Job(String id, String param_name) {
-        this.id = id;
-        this.param_name = param_name;
+    public Job(String name, int duration) {
+        this.name = name;
+        this.duration = duration;
     }
 
-    public String getId() {
-        return id;
+    public String getName() {
+        return name;
     }
 
-    public String getParam_name() {
-        return param_name;
+    public int getDuration() {
+        return duration;
     }
 
-    public void setId(String id) {
-        this.id = id;
+    public void setName(String name) {
+        this.name = name;
     }
 
-    public void setParam_name(String param_name) {
-        this.param_name = param_name;
+    public void setDuration(int duration) {
+        this.duration = duration;
+    }
+
+    @Override
+    public String toString() {
+        return "Job{" +
+                "name='" + name + '\'' +
+                ", duration='" + duration + '\'' +
+                '}';
     }
 }

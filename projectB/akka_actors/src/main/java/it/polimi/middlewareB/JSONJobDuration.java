@@ -1,6 +1,6 @@
-package it.polimi.middlewareB.actors;
+package it.polimi.middlewareB;
 
-public class JobType {
+public class JSONJobDuration {
 
     public String getName() {
         return name;
