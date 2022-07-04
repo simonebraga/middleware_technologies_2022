@@ -1,5 +1,5 @@
 [
-  {"name": "image-compression", "duration": 100},
-  {"name": "document-conversion", "duration": 100},
+  {"name": "image-compression", "duration": 1000},
+  {"name": "document-conversion", "duration": 2000},
   {"name": "text-formatting", "duration": 3000}
 ]

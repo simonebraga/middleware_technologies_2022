@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import akka.routing.BalancingPool;
+import akka.routing.Broadcast;
 import akka.routing.SmallestMailboxPool;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -21,6 +23,7 @@ import it.polimi.middlewareB.JSONJobDuration;
 import it.polimi.middlewareB.JSONJobTask;
 import it.polimi.middlewareB.messages.DocumentConversionJobMessage;
 import it.polimi.middlewareB.messages.ImageCompressionJobMessage;
+import it.polimi.middlewareB.messages.KafkaConfigurationMessage;
 import it.polimi.middlewareB.messages.TextFormattingJobMessage;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -31,6 +34,8 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 public class ClusterStarter {
 
 	public static void main(String[] args) {
+		final String bootstrap = args.length > 0 ? args[0] : "localhost:9092";
+
 		Config config = ConfigFactory.parseFile(new File("Remote_configuration.txt"));
 		String jobJSONFile = "src/main/resources/job_list.json";
 		Map<String, Integer> jobDurations;
@@ -44,8 +49,11 @@ public class ClusterStarter {
 		//ActorSystem sys = ActorSystem.create("ProjB_actor_system", config);
 		ActorSystem sys = ActorSystem.create("ProjB_actor_system");
 
+		//It would be best using a BalancingPool, but then we'd lost the ability to use a Broadcast message
 		ActorRef mainDispatcher = sys.actorOf(new SmallestMailboxPool(3).props(JobSupervisorActor.props()),
 				"roundrobinpool");
+
+		mainDispatcher.tell(new Broadcast(new KafkaConfigurationMessage(bootstrap)), ActorRef.noSender());
 
 		//testBasicMessages(mainDispatcher, jobDurations);
 		processPendingJobs(mainDispatcher, jobDurations);
@@ -88,25 +96,25 @@ public class ClusterStarter {
 		System.out.println("Sending a basic message...");
 
 		// TEST CODE //
-		mainDispatcher.tell(new TextFormattingJobMessage("/simple/input", "simple/output", "s/\\t/    /", jobDurations.get("text-formatting")), null);
+		mainDispatcher.tell(new TextFormattingJobMessage("dummyKey", "/simple/input", "simple/output", "s/\\t/    /", jobDurations.get("text-formatting")), null);
 
-		mainDispatcher.tell(new ImageCompressionJobMessage("/input", "/output", 15, jobDurations.get("image-compression")), null);
+		mainDispatcher.tell(new ImageCompressionJobMessage("dummyKey", "/input", "/output", 15, jobDurations.get("image-compression")), null);
 
 		mainDispatcher.tell(
-				new DocumentConversionJobMessage(
+				new DocumentConversionJobMessage("dummyKey",
 						"/another/input", "/another/output", ".pdf", jobDurations.get("document-conversion")),
 				null);
 
-		mainDispatcher.tell(new TextFormattingJobMessage("/simple/input", "simple/output", "s/\\t/    /", jobDurations.get("text-formatting")), null);
+		mainDispatcher.tell(new TextFormattingJobMessage("dummyKey", "/simple/input", "simple/output", "s/\\t/    /", jobDurations.get("text-formatting")), null);
 
-		mainDispatcher.tell(new ImageCompressionJobMessage("/input", "/output", 15, jobDurations.get("image-compression")), null);
+		mainDispatcher.tell(new ImageCompressionJobMessage("dummyKey", "/input", "/output", 15, jobDurations.get("image-compression")), null);
 
-		mainDispatcher.tell(new DocumentConversionJobMessage("/another/input", "/another/output", ".pdf", jobDurations.get("document-conversion")), null);
-		mainDispatcher.tell(new TextFormattingJobMessage("/simple/input", "simple/output", "s/\\t/    /", jobDurations.get("text-formatting")), null);
+		mainDispatcher.tell(new DocumentConversionJobMessage("dummyKey", "/another/input", "/another/output", ".pdf", jobDurations.get("document-conversion")), null);
+		mainDispatcher.tell(new TextFormattingJobMessage("dummyKey", "/simple/input", "simple/output", "s/\\t/    /", jobDurations.get("text-formatting")), null);
 
-		mainDispatcher.tell(new ImageCompressionJobMessage("/input", "/output", 15, jobDurations.get("image-compression")), null);
+		mainDispatcher.tell(new ImageCompressionJobMessage("dummyKey", "/input", "/output", 15, jobDurations.get("image-compression")), null);
 
-		mainDispatcher.tell(new DocumentConversionJobMessage("/another/input", "/another/output", ".pdf", jobDurations.get("document-conversion")), null);
+		mainDispatcher.tell(new DocumentConversionJobMessage("dummyKey", "/another/input", "/another/output", ".pdf", jobDurations.get("document-conversion")), null);
 		try {
 			Thread.sleep(20_000);
 		} catch (InterruptedException e) {
@@ -143,7 +151,7 @@ public class ClusterStarter {
 					System.out.println("key: " + record.key() + ", " + record.value());
 					try {
 						JSONJobTask nextJob = jacksonMapper.readValue(record.value(), JSONJobTask.class);
-						buildAndSendMessage(mainDispatcher, nextJob, jobDurations);
+						buildAndSendMessage(mainDispatcher, record.key(), nextJob, jobDurations);
 					} catch (JsonProcessingException e) {
 						System.err.println("Unable to process job: " + record.key() + ", " + record.value());
 						//throw new RuntimeException(e);
@@ -154,25 +162,28 @@ public class ClusterStarter {
 		}
 	}
 
-	private static void buildAndSendMessage(ActorRef mainDispatcher, JSONJobTask jsonJob, Map<String, Integer> jobDurations){
+	private static void buildAndSendMessage(ActorRef mainDispatcher, String key, JSONJobTask jsonJob, Map<String, Integer> jobDurations){
 		switch (jsonJob.getName()){
 			case "image-compression":
 				mainDispatcher
-						.tell(new ImageCompressionJobMessage(jsonJob.getInput(),
+						.tell(new ImageCompressionJobMessage(key,
+								jsonJob.getInput(),
 								jsonJob.getOutput(),
 								Integer.parseInt(jsonJob.getParameter()),
 								jobDurations.get(jsonJob.getName())), ActorRef.noSender());
 				break;
 			case "text-formatting":
 				mainDispatcher
-						.tell(new TextFormattingJobMessage(jsonJob.getInput(),
+						.tell(new TextFormattingJobMessage(key,
+								jsonJob.getInput(),
 								jsonJob.getOutput(),
 								jsonJob.getParameter(),
 								jobDurations.get(jsonJob.getName())), ActorRef.noSender());
 				break;
 			case "document-conversion":
 				mainDispatcher
-						.tell(new DocumentConversionJobMessage(jsonJob.getInput(),
+						.tell(new DocumentConversionJobMessage(key,
+								jsonJob.getInput(),
 								jsonJob.getOutput(),
 								jsonJob.getParameter(),
 								jobDurations.get(jsonJob.getName())), ActorRef.noSender());

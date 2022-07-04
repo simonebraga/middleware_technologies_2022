@@ -25,7 +25,8 @@ public class JobWorkerActor extends AbstractActorWithStash {
             System.out.println("Failure!");
             throw new JobExecutionException("Exception in Text Formatting");
         }
-        String completionMessage = "Received " + msg.getClass().getName() + ": " +
+        String completionMessage = "Received " + msg.getClass().getName() +
+                ", key " + msg.getKey() + ": " +
                 "input " + msg.getInputFile() + ", " +
                 "output " + msg.getOutputFile() + ", " +
                 "formatting rules " + msg.getFormattingRules();
@@ -35,7 +36,7 @@ public class JobWorkerActor extends AbstractActorWithStash {
             throw new RuntimeException(e);
         }
         //System.out.println(completionMessage);
-        sender().tell(new JobCompletedMessage(completionMessage), self());
+        sender().tell(new JobCompletedMessage(msg.getKey(), completionMessage), self());
 
     }
 
@@ -45,7 +46,8 @@ public class JobWorkerActor extends AbstractActorWithStash {
             System.out.println("Failure!");
             throw new JobExecutionException("Exception in Document Conversion");
         }
-        String completionMessage = "Received " + msg.getClass().getName() + ": " +
+        String completionMessage = "Received " + msg.getClass().getName() +
+                ", key " + msg.getKey() + ": " +
                 "input " + msg.getInputFile() + ", " +
                 "output " + msg.getOutputFile() + ", " +
                 "target extension " + msg.getTargetExtension();
@@ -55,7 +57,7 @@ public class JobWorkerActor extends AbstractActorWithStash {
             throw new RuntimeException(e);
         }
         //System.out.println(completionMessage);
-        sender().tell(new JobCompletedMessage(completionMessage), self());
+        sender().tell(new JobCompletedMessage(msg.getKey(), completionMessage), self());
     }
 
     public void echoImageCompressionMessage(ImageCompressionJobMessage msg) throws JobExecutionException {
@@ -64,7 +66,8 @@ public class JobWorkerActor extends AbstractActorWithStash {
             System.out.println("Failure!");
             throw new JobExecutionException("Exception in Image Compression");
         }
-        String completionMessage = "Received " + msg.getClass().getName() + ": " +
+        String completionMessage = "Received " + msg.getClass().getName() +
+                ", key " + msg.getKey() + ": " +
                 "input " + msg.getInputFile() + ", " +
                 "output " + msg.getOutputFile() + ", " +
                 "compression ratio " + msg.getCompressionRatio();
@@ -74,7 +77,7 @@ public class JobWorkerActor extends AbstractActorWithStash {
             throw new RuntimeException(e);
         }
         //System.out.println(completionMessage);
-        sender().tell(new JobCompletedMessage(completionMessage), self());
+        sender().tell(new JobCompletedMessage(msg.getKey(), completionMessage), self());
 
     }
 
@@ -92,6 +95,6 @@ public class JobWorkerActor extends AbstractActorWithStash {
         unstashAll();
     }
 
-    private static final double probabilityOfFailure = 0.3;
+    private static final double probabilityOfFailure = 0.2;
     private static Random random;
 }
