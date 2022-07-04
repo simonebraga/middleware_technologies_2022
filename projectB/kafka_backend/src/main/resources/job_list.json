@@ -1,5 +1,7 @@
 [
   {"name": "image-compression", "duration": 1000},
   {"name": "document-conversion", "duration": 2000},
-  {"name": "text-formatting", "duration": 3000}
+  {"name": "text-formatting", "duration": 3000},
+  {"name": "MPI-application", "duration": 5000},
+  {"name": "compilation", "duration": 10000}
 ]
