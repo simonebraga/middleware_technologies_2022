@@ -2,15 +2,15 @@ package it.polimi.middlewareB.actors;
 
 import akka.actor.*;
 import akka.japi.pf.DeciderBuilder;
-import akka.util.Timeout;
 import it.polimi.middlewareB.JobExecutionException;
-import it.polimi.middlewareB.messages.*;
+import it.polimi.middlewareB.messages.JobCompletedMessage;
+import it.polimi.middlewareB.messages.JobTaskMessage;
+import it.polimi.middlewareB.messages.KafkaConfigurationMessage;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringSerializer;
 
-import java.time.Duration;
 import java.util.Properties;
 
 public class JobSupervisorActor extends AbstractActor {
@@ -18,23 +18,14 @@ public class JobSupervisorActor extends AbstractActor {
 	@Override
 	public Receive createReceive() {
 		return receiveBuilder()
-				.match(TextFormattingJobMessage.class, this::startTextFormattingJob)
-				.match(DocumentConversionJobMessage.class, this::startDocumentConversionJob)
-				.match(ImageCompressionJobMessage.class, this::startImageCompressionJob)
+				.match(JobTaskMessage.class, this::startJobTask)
 				.match(JobCompletedMessage.class, this::publishCompletedJob)
 				.match(KafkaConfigurationMessage.class, this::setKafkaProducer)
 				.build();
 	}
 
-	private void startImageCompressionJob(ImageCompressionJobMessage msg) {
-		workerActor.tell(msg, self());
-	}
 
-	private void startDocumentConversionJob(DocumentConversionJobMessage msg) {
-		workerActor.tell(msg, self());
-	}
-
-	private void startTextFormattingJob(TextFormattingJobMessage msg) {
+	private void startJobTask(JobTaskMessage msg) {
 		workerActor.tell(msg, self());
 	}
 
@@ -67,7 +58,7 @@ public class JobSupervisorActor extends AbstractActor {
 	}
 
 	private static SupervisorStrategy strategy =
-			//it means: restart after 50 retries, allowing infinite time to complete the job
+			//it means: restart indefinitely, allowing infinite time to complete the job
 		new OneForOneStrategy(-1, scala.concurrent.duration.Duration.Inf(), false,
 					DeciderBuilder.match(JobExecutionException.class,
 					e -> SupervisorStrategy.restart())

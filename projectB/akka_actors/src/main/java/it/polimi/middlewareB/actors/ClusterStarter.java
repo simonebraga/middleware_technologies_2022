@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import akka.routing.BalancingPool;
 import akka.routing.Broadcast;
 import akka.routing.SmallestMailboxPool;
 import com.fasterxml.jackson.core.JsonParseException;
@@ -21,10 +20,8 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import it.polimi.middlewareB.JSONJobDuration;
 import it.polimi.middlewareB.JSONJobTask;
-import it.polimi.middlewareB.messages.DocumentConversionJobMessage;
-import it.polimi.middlewareB.messages.ImageCompressionJobMessage;
+import it.polimi.middlewareB.messages.JobTaskMessage;
 import it.polimi.middlewareB.messages.KafkaConfigurationMessage;
-import it.polimi.middlewareB.messages.TextFormattingJobMessage;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -96,25 +93,16 @@ public class ClusterStarter {
 		System.out.println("Sending a basic message...");
 
 		// TEST CODE //
-		mainDispatcher.tell(new TextFormattingJobMessage("dummyKey", "/simple/input", "simple/output", "s/\\t/    /", jobDurations.get("text-formatting")), null);
 
-		mainDispatcher.tell(new ImageCompressionJobMessage("dummyKey", "/input", "/output", 15, jobDurations.get("image-compression")), null);
-
-		mainDispatcher.tell(
-				new DocumentConversionJobMessage("dummyKey",
-						"/another/input", "/another/output", ".pdf", jobDurations.get("document-conversion")),
-				null);
-
-		mainDispatcher.tell(new TextFormattingJobMessage("dummyKey", "/simple/input", "simple/output", "s/\\t/    /", jobDurations.get("text-formatting")), null);
-
-		mainDispatcher.tell(new ImageCompressionJobMessage("dummyKey", "/input", "/output", 15, jobDurations.get("image-compression")), null);
-
-		mainDispatcher.tell(new DocumentConversionJobMessage("dummyKey", "/another/input", "/another/output", ".pdf", jobDurations.get("document-conversion")), null);
-		mainDispatcher.tell(new TextFormattingJobMessage("dummyKey", "/simple/input", "simple/output", "s/\\t/    /", jobDurations.get("text-formatting")), null);
-
-		mainDispatcher.tell(new ImageCompressionJobMessage("dummyKey", "/input", "/output", 15, jobDurations.get("image-compression")), null);
-
-		mainDispatcher.tell(new DocumentConversionJobMessage("dummyKey", "/another/input", "/another/output", ".pdf", jobDurations.get("document-conversion")), null);
+		mainDispatcher.tell(new JobTaskMessage("dummyKey", "image-compression", "/another/input", "/another/output", "20", jobDurations.get("image-compression")), null);
+		mainDispatcher.tell(new JobTaskMessage("dummyKey", "text-formatting", "/another/input", "/another/output", "s/ /  /", jobDurations.get("text-formatting")), null);
+		mainDispatcher.tell(new JobTaskMessage("dummyKey", "document-conversion", "/another/input", "/another/output", ".pdf", jobDurations.get("document-conversion")), null);
+		mainDispatcher.tell(new JobTaskMessage("dummyKey", "image-compression", "/another/input", "/another/output", "40", jobDurations.get("image-compression")), null);
+		mainDispatcher.tell(new JobTaskMessage("dummyKey", "text-formatting", "/another/input", "/another/output", "grep akka", jobDurations.get("text-formatting")), null);
+		mainDispatcher.tell(new JobTaskMessage("dummyKey", "document-conversion", "/another/input", "/another/output", ".pdf", jobDurations.get("document-conversion")), null);
+		mainDispatcher.tell(new JobTaskMessage("dummyKey", "image-compression", "/another/input", "/another/output", "45", jobDurations.get("image-compression")), null);
+		mainDispatcher.tell(new JobTaskMessage("dummyKey", "text-formatting", "/another/input", "/another/output", "tee", jobDurations.get("text-formatting")), null);
+		mainDispatcher.tell(new JobTaskMessage("dummyKey", "document-conversion", "/another/input", "/another/output", ".pdf", jobDurations.get("document-conversion")), null);
 		try {
 			Thread.sleep(20_000);
 		} catch (InterruptedException e) {
@@ -163,36 +151,18 @@ public class ClusterStarter {
 	}
 
 	private static void buildAndSendMessage(ActorRef mainDispatcher, String key, JSONJobTask jsonJob, Map<String, Integer> jobDurations){
-		switch (jsonJob.getName()){
-			case "image-compression":
-				mainDispatcher
-						.tell(new ImageCompressionJobMessage(key,
-								jsonJob.getInput(),
-								jsonJob.getOutput(),
-								Integer.parseInt(jsonJob.getParameter()),
-								jobDurations.get(jsonJob.getName())), ActorRef.noSender());
-				break;
-			case "text-formatting":
-				mainDispatcher
-						.tell(new TextFormattingJobMessage(key,
-								jsonJob.getInput(),
-								jsonJob.getOutput(),
-								jsonJob.getParameter(),
-								jobDurations.get(jsonJob.getName())), ActorRef.noSender());
-				break;
-			case "document-conversion":
-				mainDispatcher
-						.tell(new DocumentConversionJobMessage(key,
-								jsonJob.getInput(),
-								jsonJob.getOutput(),
-								jsonJob.getParameter(),
-								jobDurations.get(jsonJob.getName())), ActorRef.noSender());
-				break;
-			default:
-				System.err.println("Unknown job type! - " + jsonJob.getName());
-
+		if (jobDurations.containsKey(jsonJob.getName())) {
+			mainDispatcher.tell(new JobTaskMessage(key,
+					jsonJob.getName(),
+					jsonJob.getInput(),
+					jsonJob.getOutput(),
+					jsonJob.getParameter(),
+					jobDurations.get(jsonJob.getName())), ActorRef.noSender());
+		} else {
+			System.err.println("Unknown job type! - " + jsonJob.getName());
 		}
 	}
 }
+
 
 
