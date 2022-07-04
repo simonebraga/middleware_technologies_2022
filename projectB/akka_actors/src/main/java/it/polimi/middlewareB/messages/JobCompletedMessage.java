@@ -2,7 +2,8 @@ package it.polimi.middlewareB.messages;
 
 public class JobCompletedMessage {
 
-    public JobCompletedMessage(String notificationMessage) {
+    public JobCompletedMessage(String key, String notificationMessage) {
+        this.key = key;
         this.notificationMessage = notificationMessage;
     }
 
@@ -10,5 +11,10 @@ public class JobCompletedMessage {
         return notificationMessage;
     }
 
-    private String notificationMessage;
+    public String getKey() {
+        return key;
+    }
+
+    private final String notificationMessage;
+    private final String key;
 }

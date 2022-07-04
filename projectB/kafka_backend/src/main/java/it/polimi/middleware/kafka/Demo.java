@@ -58,7 +58,7 @@ public class Demo implements Runnable {
             for (final ConsumerRecord<String, String> record : records) {
                 try { TimeUnit.SECONDS.sleep(10); }
                 catch (InterruptedException ignored) {}
-                producer.send(new ProducerRecord<>(topic_in, record.key(), "/result/folder"));
+                //producer.send(new ProducerRecord<>(topic_in, record.key(), "/result/folder"));
             }
         }
     }

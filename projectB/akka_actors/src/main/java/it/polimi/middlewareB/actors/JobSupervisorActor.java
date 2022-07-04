@@ -4,12 +4,14 @@ import akka.actor.*;
 import akka.japi.pf.DeciderBuilder;
 import akka.util.Timeout;
 import it.polimi.middlewareB.JobExecutionException;
-import it.polimi.middlewareB.messages.DocumentConversionJobMessage;
-import it.polimi.middlewareB.messages.ImageCompressionJobMessage;
-import it.polimi.middlewareB.messages.JobCompletedMessage;
-import it.polimi.middlewareB.messages.TextFormattingJobMessage;
+import it.polimi.middlewareB.messages.*;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.StringSerializer;
 
 import java.time.Duration;
+import java.util.Properties;
 
 public class JobSupervisorActor extends AbstractActor {
 
@@ -20,6 +22,7 @@ public class JobSupervisorActor extends AbstractActor {
 				.match(DocumentConversionJobMessage.class, this::startDocumentConversionJob)
 				.match(ImageCompressionJobMessage.class, this::startImageCompressionJob)
 				.match(JobCompletedMessage.class, this::publishCompletedJob)
+				.match(KafkaConfigurationMessage.class, this::setKafkaProducer)
 				.build();
 	}
 
@@ -37,6 +40,16 @@ public class JobSupervisorActor extends AbstractActor {
 
 	private void publishCompletedJob(JobCompletedMessage msg){
 		System.out.println(msg.getNotificationMessage());
+
+		kafkaProducer.send(new ProducerRecord<>("completedJobs", msg.getKey(), msg.getNotificationMessage()));
+	}
+
+	private void setKafkaProducer(KafkaConfigurationMessage msg){
+		final Properties producerProps = new Properties();
+		producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, msg.getBootstrap());
+		producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+		producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+		kafkaProducer = new KafkaProducer<>(producerProps);
 	}
 	@Override
 	public void preStart() throws Exception {
@@ -62,5 +75,6 @@ public class JobSupervisorActor extends AbstractActor {
 	private ActorRef workerActor;
 
 	//private static Timeout MAX_TIMEOUT = Timeout.create(Duration.ofMillis(Integer.MAX_VALUE));
+	private KafkaProducer<String, String> kafkaProducer;
 
 }
