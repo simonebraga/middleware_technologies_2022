@@ -31,7 +31,6 @@ public class AnalysisThread implements Runnable{
         config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         //TODO are we sure of this?
         config.setProperty("auto.offset.reset","earliest");
-        config.setProperty("enable.auto.commit", "false");
 
 
         KafkaConsumer<String, String> consumer = new KafkaConsumer<>(config);
@@ -40,9 +39,10 @@ public class AnalysisThread implements Runnable{
 
         ObjectMapper jacksonMapper = new ObjectMapper();
         AlwaysSeekToBeginningListener consumerRebalanceListener =new AlwaysSeekToBeginningListener<String, String>(consumer);
+        consumer.subscribe(List.of("completedJobs"), consumerRebalanceListener);
 
         while(true) {
-            consumer.subscribe(List.of("completedJobs"), consumerRebalanceListener);
+
 
             int debugCompletedInMinute = 0;
             int completedInMonth = 0;
@@ -51,7 +51,7 @@ public class AnalysisThread implements Runnable{
             int completedInHour = 0;
 
             LocalDateTime now = LocalDateTime.now();
-            //consumer.seekToBeginning(Collections.singleton(new TopicPartition("completedJobs", 0)));
+            consumer.seekToBeginning(consumer.assignment());
             ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(10));
 
             if (records.count() != 0) {
@@ -83,7 +83,7 @@ public class AnalysisThread implements Runnable{
                     completedInWeek + " jobs completed in last week\n" +
                     completedInMonth + " jobs completed in last month");
 
-            consumer.unsubscribe();
+
             try {
                 Thread.sleep(1000 * 60);
             } catch (InterruptedException e) {
