@@ -1,11 +1,10 @@
-package it.polimi.middlewareB.actors;
+package it.polimi.middlewareB;
 
 import java.io.*;
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.*;
 
 import akka.routing.Broadcast;
 import akka.routing.SmallestMailboxPool;
@@ -20,6 +19,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import it.polimi.middlewareB.JSONJobDuration;
 import it.polimi.middlewareB.JSONJobTask;
+import it.polimi.middlewareB.actors.JobSupervisorActor;
 import it.polimi.middlewareB.messages.JobTaskMessage;
 import it.polimi.middlewareB.messages.KafkaConfigurationMessage;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -52,8 +52,10 @@ public class ClusterStarter {
 
 		mainDispatcher.tell(new Broadcast(new KafkaConfigurationMessage(bootstrap)), ActorRef.noSender());
 
+		Runnable analysis = new AnalysisThread(bootstrap);
+		new Thread(analysis).start();
 		//testBasicMessages(mainDispatcher, jobDurations);
-		processPendingJobs(mainDispatcher, jobDurations);
+		processPendingJobs(mainDispatcher, bootstrap, jobDurations);
 		sys.terminate();
 		// Scanner keyboard = new Scanner(System.in);
 		// keyboard.nextLine();
@@ -110,15 +112,15 @@ public class ClusterStarter {
 		}
 	}
 
-	private static void processPendingJobs(ActorRef mainDispatcher, Map<String, Integer> jobDurations){
+	private static void processPendingJobs(ActorRef mainDispatcher, String bootstrap, Map<String, Integer> jobDurations){
 		/*try {
 			System.setOut(new PrintStream(new FileOutputStream("/dev/null")));
 		} catch (FileNotFoundException e) {
 			throw new RuntimeException(e);
 		}*/
 		Properties config = new Properties();
-		config.put(ConsumerConfig.GROUP_ID_CONFIG, "single1");
-		config.put("bootstrap.servers", "localhost:9092");
+		config.put(ConsumerConfig.GROUP_ID_CONFIG, "tasksExecutors");
+		config.put("bootstrap.servers", bootstrap);
 		config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
 		config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
 		config.setProperty("auto.offset.reset","earliest");
@@ -132,11 +134,11 @@ public class ClusterStarter {
 
 		while(true) {
 			ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(10));
-			if (records.count() == 0) {
-
-			} else {
+			if (records.count() != 0) {
 				for (ConsumerRecord<String, String> record : records) {
-					System.out.println("key: " + record.key() + ", " + record.value());
+					LocalDateTime timestamp = LocalDateTime.ofInstant(Instant.ofEpochMilli(record.timestamp()),
+							TimeZone.getDefault().toZoneId());
+					System.out.println(timestamp + " - key: " + record.key() + ", " + record.value());
 					try {
 						JSONJobTask nextJob = jacksonMapper.readValue(record.value(), JSONJobTask.class);
 						buildAndSendMessage(mainDispatcher, record.key(), nextJob, jobDurations);
