@@ -17,6 +17,7 @@ public class JobWorkerActor extends AbstractActorWithStash {
 
 
     public void echoJobTaskMessage(JobTaskMessage msg) throws JobExecutionException {
+        //System.out.println("Started execution");
         if(random.nextDouble() < probabilityOfFailure){
             stash();
             System.out.println("Failure!");

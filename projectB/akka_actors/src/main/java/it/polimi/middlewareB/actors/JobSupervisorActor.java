@@ -20,11 +20,16 @@ public class JobSupervisorActor extends AbstractActor {
 		return receiveBuilder()
 				.match(JobTaskMessage.class, this::startJobTask)
 				.match(JobCompletedMessage.class, this::publishCompletedJob)
-				.match(KafkaConfigurationMessage.class, this::setKafkaProducer)
 				.build();
 	}
 
-
+	public JobSupervisorActor(String kafkaBootstrap){
+		final Properties producerProps = new Properties();
+		producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrap);
+		producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+		producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+		kafkaProducer = new KafkaProducer<>(producerProps);
+	}
 	private void startJobTask(JobTaskMessage msg) {
 		workerActor.tell(msg, self());
 	}
@@ -53,8 +58,8 @@ public class JobSupervisorActor extends AbstractActor {
 
 
 
-	public static Props props() {
-		return Props.create(JobSupervisorActor.class);
+	public static Props props(String kafkaBootstrap) {
+		return Props.create(JobSupervisorActor.class, () -> new JobSupervisorActor(kafkaBootstrap));
 	}
 
 	private static SupervisorStrategy strategy =
