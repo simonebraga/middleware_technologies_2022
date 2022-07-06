@@ -17,9 +17,9 @@ import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import it.polimi.middlewareB.JSONJobDuration;
-import it.polimi.middlewareB.JSONJobTask;
 import it.polimi.middlewareB.actors.JobSupervisorActor;
+import it.polimi.middlewareB.analysis.CompletedAnalysisThread;
+import it.polimi.middlewareB.analysis.PendingAnalysisThread;
 import it.polimi.middlewareB.messages.JobTaskMessage;
 import it.polimi.middlewareB.messages.KafkaConfigurationMessage;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -52,8 +52,10 @@ public class ClusterStarter {
 
 		mainDispatcher.tell(new Broadcast(new KafkaConfigurationMessage(bootstrap)), ActorRef.noSender());
 
-		Runnable analysis = new AnalysisThread(bootstrap);
-		new Thread(analysis).start();
+		Runnable completedAnalysis = new CompletedAnalysisThread(bootstrap);
+		new Thread(completedAnalysis).start();
+		Runnable pendingAnalysis = new PendingAnalysisThread(bootstrap);
+		new Thread(pendingAnalysis).start();
 		//testBasicMessages(mainDispatcher, jobDurations);
 		processPendingJobs(mainDispatcher, bootstrap, jobDurations);
 		sys.terminate();
@@ -133,7 +135,7 @@ public class ClusterStarter {
 		ObjectMapper jacksonMapper = new ObjectMapper();
 
 		while(true) {
-			ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(10));
+			ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
 			if (records.count() != 0) {
 				for (ConsumerRecord<String, String> record : records) {
 					LocalDateTime timestamp = LocalDateTime.ofInstant(Instant.ofEpochMilli(record.timestamp()),
@@ -148,7 +150,7 @@ public class ClusterStarter {
 					}
 				}
 			}
-			System.out.println("Processing done!");
+			//System.out.println("Processing done!");
 		}
 	}
 
