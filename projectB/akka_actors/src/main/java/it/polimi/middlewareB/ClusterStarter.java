@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.*;
 
+import akka.routing.BalancingPool;
 import akka.routing.Broadcast;
 import akka.routing.SmallestMailboxPool;
 import com.fasterxml.jackson.core.JsonParseException;
@@ -47,10 +48,9 @@ public class ClusterStarter {
 		ActorSystem sys = ActorSystem.create("ProjB_actor_system");
 
 		//It would be best using a BalancingPool, but then we'd lost the ability to use a Broadcast message
-		ActorRef mainDispatcher = sys.actorOf(new SmallestMailboxPool(3).props(JobSupervisorActor.props()),
-				"roundrobinpool");
+		ActorRef mainDispatcher = sys.actorOf(new SmallestMailboxPool(3).props(JobSupervisorActor.props(bootstrap)),
+				"projectBpool");
 
-		mainDispatcher.tell(new Broadcast(new KafkaConfigurationMessage(bootstrap)), ActorRef.noSender());
 
 		Runnable completedAnalysis = new CompletedAnalysisThread(bootstrap);
 		new Thread(completedAnalysis).start();
@@ -97,18 +97,31 @@ public class ClusterStarter {
 		System.out.println("Sending a basic message...");
 
 		// TEST CODE //
+		String repeatedJob = "compilation";
+		mainDispatcher.tell(new JobTaskMessage("dummyKey1", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
+		mainDispatcher.tell(new JobTaskMessage("dummyKey2", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
+		mainDispatcher.tell(new JobTaskMessage("dummyKey3", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
+		mainDispatcher.tell(new JobTaskMessage("dummyKey4", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
+		mainDispatcher.tell(new JobTaskMessage("dummyKey5", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
+		mainDispatcher.tell(new JobTaskMessage("dummyKey6", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
+		mainDispatcher.tell(new JobTaskMessage("dummyKey7", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
+		mainDispatcher.tell(new JobTaskMessage("dummyKey8", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
 
-		mainDispatcher.tell(new JobTaskMessage("dummyKey", "image-compression", "/another/input", "/another/output", "20", jobDurations.get("image-compression")), null);
-		mainDispatcher.tell(new JobTaskMessage("dummyKey", "text-formatting", "/another/input", "/another/output", "s/ /  /", jobDurations.get("text-formatting")), null);
-		mainDispatcher.tell(new JobTaskMessage("dummyKey", "document-conversion", "/another/input", "/another/output", ".pdf", jobDurations.get("document-conversion")), null);
-		mainDispatcher.tell(new JobTaskMessage("dummyKey", "image-compression", "/another/input", "/another/output", "40", jobDurations.get("image-compression")), null);
-		mainDispatcher.tell(new JobTaskMessage("dummyKey", "text-formatting", "/another/input", "/another/output", "grep akka", jobDurations.get("text-formatting")), null);
-		mainDispatcher.tell(new JobTaskMessage("dummyKey", "document-conversion", "/another/input", "/another/output", ".pdf", jobDurations.get("document-conversion")), null);
-		mainDispatcher.tell(new JobTaskMessage("dummyKey", "image-compression", "/another/input", "/another/output", "45", jobDurations.get("image-compression")), null);
-		mainDispatcher.tell(new JobTaskMessage("dummyKey", "text-formatting", "/another/input", "/another/output", "tee", jobDurations.get("text-formatting")), null);
-		mainDispatcher.tell(new JobTaskMessage("dummyKey", "document-conversion", "/another/input", "/another/output", ".pdf", jobDurations.get("document-conversion")), null);
+//
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey1", "image-compression", "/another/input", "/another/output", "20", jobDurations.get("image-compression")), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey2", "text-formatting", "/another/input", "/another/output", "s/ /  /", jobDurations.get("text-formatting")), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey3", "document-conversion", "/another/input", "/another/output", ".pdf", jobDurations.get("document-conversion")), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey4", "image-compression", "/another/input", "/another/output", "40", jobDurations.get("image-compression")), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey5", "text-formatting", "/another/input", "/another/output", "grep akka", jobDurations.get("text-formatting")), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey6", "document-conversion", "/another/input", "/another/output", ".pdf", jobDurations.get("document-conversion")), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey7", "image-compression", "/another/input", "/another/output", "45", jobDurations.get("image-compression")), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey8", "text-formatting", "/another/input", "/another/output", "tee", jobDurations.get("text-formatting")), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey9", "document-conversion", "/another/input", "/another/output", ".pdf", jobDurations.get("document-conversion")), null);
+
+		System.out.println("Messages sent!");
+
 		try {
-			Thread.sleep(20_000);
+			Thread.sleep(40_000);
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e);
 		}
