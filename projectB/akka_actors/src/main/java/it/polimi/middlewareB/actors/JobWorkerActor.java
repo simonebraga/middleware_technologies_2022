@@ -35,7 +35,7 @@ public class JobWorkerActor extends AbstractActorWithStash {
             throw new RuntimeException(e);
         }
         //System.out.println(completionMessage);
-        sender().tell(new JobCompletedMessage(msg.getKey(), completionMessage, msg.getnOfFailures() + 1), self());
+        sender().tell(new JobCompletedMessage(msg.getKey(), completionMessage, msg.getName(), msg.getnOfFailures() + 1), self());
     }
 
 

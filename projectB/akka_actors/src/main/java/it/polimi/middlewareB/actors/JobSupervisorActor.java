@@ -4,6 +4,7 @@ import akka.actor.*;
 import akka.japi.pf.DeciderBuilder;
 import it.polimi.middlewareB.JobExecutionException;
 import it.polimi.middlewareB.messages.JobCompletedMessage;
+import it.polimi.middlewareB.messages.JobStatisticsMessage;
 import it.polimi.middlewareB.messages.JobTaskMessage;
 import it.polimi.middlewareB.messages.KafkaConfigurationMessage;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -23,20 +24,21 @@ public class JobSupervisorActor extends AbstractActor {
 				.build();
 	}
 
-	public JobSupervisorActor(String kafkaBootstrap){
+	public JobSupervisorActor(String kafkaBootstrap, ActorRef retriesAnalysisActor){
 		final Properties producerProps = new Properties();
 		producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrap);
 		producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
 		producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
 		kafkaProducer = new KafkaProducer<>(producerProps);
+		this.retriesAnalysisActor = retriesAnalysisActor;
 	}
 	private void startJobTask(JobTaskMessage msg) {
 		workerActor.tell(msg, self());
 	}
 
 	private void publishCompletedJob(JobCompletedMessage msg){
-		System.out.println(msg.getNotificationMessage() + " (took " + msg.getnOfStarts() + " tries)");
-
+		//System.out.println(msg.getNotificationMessage() + " (took " + msg.getnOfStarts() + " tries)");
+		retriesAnalysisActor.tell(new JobStatisticsMessage(msg.getName(), msg.getnOfStarts()), self());
 		kafkaProducer.send(new ProducerRecord<>("completedJobs", msg.getKey(), msg.getNotificationMessage()));
 	}
 
@@ -58,8 +60,8 @@ public class JobSupervisorActor extends AbstractActor {
 
 
 
-	public static Props props(String kafkaBootstrap) {
-		return Props.create(JobSupervisorActor.class, () -> new JobSupervisorActor(kafkaBootstrap));
+	public static Props props(String kafkaBootstrap, ActorRef retriesAnalysisActor) {
+		return Props.create(JobSupervisorActor.class, () -> new JobSupervisorActor(kafkaBootstrap, retriesAnalysisActor));
 	}
 
 	private static SupervisorStrategy strategy =
@@ -71,6 +73,8 @@ public class JobSupervisorActor extends AbstractActor {
 	private ActorRef workerActor;
 
 	//private static Timeout MAX_TIMEOUT = Timeout.create(Duration.ofMillis(Integer.MAX_VALUE));
+	//TODO can these be made static?
 	private KafkaProducer<String, String> kafkaProducer;
+	private ActorRef retriesAnalysisActor;
 
 }
