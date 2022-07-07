@@ -21,6 +21,7 @@ import akka.actor.ActorSystem;
 import it.polimi.middlewareB.actors.JobSupervisorActor;
 import it.polimi.middlewareB.analysis.CompletedAnalysisThread;
 import it.polimi.middlewareB.analysis.PendingAnalysisThread;
+import it.polimi.middlewareB.analysis.RetriesAnalysisActor;
 import it.polimi.middlewareB.messages.JobTaskMessage;
 import it.polimi.middlewareB.messages.KafkaConfigurationMessage;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -47,8 +48,10 @@ public class ClusterStarter {
 		//ActorSystem sys = ActorSystem.create("ProjB_actor_system", config);
 		ActorSystem sys = ActorSystem.create("ProjB_actor_system");
 
-		//It would be best using a BalancingPool, but then we'd lost the ability to use a Broadcast message
-		ActorRef mainDispatcher = sys.actorOf(new SmallestMailboxPool(3).props(JobSupervisorActor.props(bootstrap)),
+		ActorRef retriesAnalysisActor = sys.actorOf(RetriesAnalysisActor.props());
+		//It would be best using a BalancingPool
+		ActorRef mainDispatcher = sys.actorOf(new SmallestMailboxPool(3)
+						.props(JobSupervisorActor.props(bootstrap, retriesAnalysisActor)),
 				"projectBpool");
 
 
@@ -98,14 +101,14 @@ public class ClusterStarter {
 
 		// TEST CODE //
 		String repeatedJob = "compilation";
-		mainDispatcher.tell(new JobTaskMessage("dummyKey1", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
-		mainDispatcher.tell(new JobTaskMessage("dummyKey2", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
-		mainDispatcher.tell(new JobTaskMessage("dummyKey3", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
-		mainDispatcher.tell(new JobTaskMessage("dummyKey4", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
-		mainDispatcher.tell(new JobTaskMessage("dummyKey5", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
-		mainDispatcher.tell(new JobTaskMessage("dummyKey6", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
-		mainDispatcher.tell(new JobTaskMessage("dummyKey7", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
-		mainDispatcher.tell(new JobTaskMessage("dummyKey8", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey1", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey2", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey3", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey4", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey5", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey6", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey7", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey8", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
 
 //
 		//mainDispatcher.tell(new JobTaskMessage("dummyKey1", "image-compression", "/another/input", "/another/output", "20", jobDurations.get("image-compression")), null);
@@ -121,7 +124,7 @@ public class ClusterStarter {
 		System.out.println("Messages sent!");
 
 		try {
-			Thread.sleep(40_000);
+			Thread.sleep(60_000);
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e);
 		}
@@ -148,7 +151,7 @@ public class ClusterStarter {
 		ObjectMapper jacksonMapper = new ObjectMapper();
 
 		while(true) {
-			ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
+			ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(500));
 			if (records.count() != 0) {
 				for (ConsumerRecord<String, String> record : records) {
 					LocalDateTime timestamp = LocalDateTime.ofInstant(Instant.ofEpochMilli(record.timestamp()),
