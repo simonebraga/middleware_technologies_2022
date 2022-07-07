@@ -49,6 +49,8 @@ public class CompletedAnalysisThread implements Runnable{
             int completedInHour = 0;
 
             LocalDateTime now = LocalDateTime.now();
+            //TODO is a poll needed also before the seekToBeginning()?
+            // Note how, at the start of the application, the results may be 0
             consumer.seekToBeginning(consumer.assignment());
             ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
 

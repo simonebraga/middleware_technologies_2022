@@ -53,7 +53,7 @@ public class JobSupervisorActor extends AbstractActor {
 		consumerProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
 		kafkaConsumer = new KafkaConsumer<>(consumerProps);
 		kafkaConsumer.subscribe(List.of("pendingJobs"));
-
+		workerActor = getContext().actorOf(Props.create(JobWorkerActor.class));
 		jacksonMapper = new ObjectMapper();
 
 		this.retriesAnalysisActor = retriesAnalysisActor;
@@ -62,6 +62,7 @@ public class JobSupervisorActor extends AbstractActor {
 		pendingJobs = 0;
 
 		idleUntilNewJob();
+		System.err.println("Constructor has finished!");
 	}
 	private void startJobTask(JobTaskMessage msg) {
 		workerActor.tell(msg, self());
@@ -84,7 +85,7 @@ public class JobSupervisorActor extends AbstractActor {
 								nextJob.getInput(),
 								nextJob.getOutput(),
 								nextJob.getParameter(),
-								jobDurations.get(nextJob.getName())), ActorRef.noSender());
+								jobDurations.get(nextJob.getName())), self());
 						pendingJobs++;
 					} catch (JsonProcessingException e) {
 						System.err.println("Unable to process job: " + record.key() + ", " + record.value());
@@ -97,6 +98,7 @@ public class JobSupervisorActor extends AbstractActor {
 
 	private void publishCompletedJob(JobCompletedMessage msg){
 		//System.out.println(msg.getNotificationMessage() + " (took " + msg.getnOfStarts() + " tries)");
+		System.err.println("Hi! I'm in publishCompletedJobs!");
 		retriesAnalysisActor.tell(new JobStatisticsMessage(msg.getName(), msg.getnOfStarts()), self());
 		kafkaProducer.send(new ProducerRecord<>("completedJobs", msg.getKey(), msg.getNotificationMessage()));
 		pendingJobs--;
@@ -115,7 +117,7 @@ public class JobSupervisorActor extends AbstractActor {
 	@Override
 	public void preStart() throws Exception {
 		super.preStart();
-		workerActor = getContext().actorOf(Props.create(JobWorkerActor.class));
+
 	}
 
 	@Override
