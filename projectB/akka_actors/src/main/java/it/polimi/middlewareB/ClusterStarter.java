@@ -50,23 +50,25 @@ public class ClusterStarter {
 
 		ActorRef retriesAnalysisActor = sys.actorOf(RetriesAnalysisActor.props());
 		//It would be best using a BalancingPool
-		ActorRef mainDispatcher = sys.actorOf(new SmallestMailboxPool(3)
-						.props(JobSupervisorActor.props(bootstrap, retriesAnalysisActor)),
-				"projectBpool");
-
+		ArrayList<ActorRef> actors = new ArrayList<>();
+		for (int i = 0; i < 3; i++) {
+			actors.add(sys.actorOf(JobSupervisorActor.props(bootstrap,retriesAnalysisActor,jobDurations), "supervisor" + i));
+		}
 
 		Runnable completedAnalysis = new CompletedAnalysisThread(bootstrap);
 		new Thread(completedAnalysis).start();
 		Runnable pendingAnalysis = new PendingAnalysisThread(bootstrap);
 		new Thread(pendingAnalysis).start();
+
+		//TODO Change with sleep
+		while (true);
 		//testBasicMessages(mainDispatcher, jobDurations);
-		processPendingJobs(mainDispatcher, bootstrap, jobDurations);
-		sys.terminate();
+		//processPendingJobs(mainDispatcher, bootstrap, jobDurations);
+		//sys.terminate();
 		// Scanner keyboard = new Scanner(System.in);
 		// keyboard.nextLine();
 		// keyboard.close();
-
-		return;
+		//return;
 	}
 
 	private static Map<String, Integer> populateMap(String pathname) throws IOException {
