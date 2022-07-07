@@ -1,13 +1,16 @@
 package it.polimi.middlewareB.messages;
 
 public class JobTaskMessage {
-	public JobTaskMessage(String key, String name, String inputFile, String outputFile, String parameter, int duration){
+	public JobTaskMessage(String key, String name,
+						  String inputFile, String outputFile, String parameter,
+						  int duration){
 		this.key = key;
 		this.name = name;
 		this.inputFile = inputFile;
 		this.outputFile = outputFile;
 		this.parameter = parameter;
 		this.duration = duration;
+		this.nOfFailures = 0;
     }
 
 	public String getKey(){ return key; }
@@ -19,6 +22,14 @@ public class JobTaskMessage {
 	public String getParameter() { return parameter; }
 
 	public int getDuration(){ return duration; }
+	public int getnOfFailures(){
+		return nOfFailures;
+	}
+
+	public JobTaskMessage incFailures(){
+		nOfFailures++;
+		return this;
+	}
 
 	private final String key;
 	private final String name;
@@ -26,4 +37,5 @@ public class JobTaskMessage {
 	private final String outputFile;
 	private final String parameter;
 	private final int duration;
+	private int nOfFailures;
 }

@@ -35,7 +35,7 @@ public class JobSupervisorActor extends AbstractActor {
 	}
 
 	private void publishCompletedJob(JobCompletedMessage msg){
-		System.out.println(msg.getNotificationMessage());
+		System.out.println(msg.getNotificationMessage() + " (took " + msg.getnOfStarts() + " tries)");
 
 		kafkaProducer.send(new ProducerRecord<>("completedJobs", msg.getKey(), msg.getNotificationMessage()));
 	}

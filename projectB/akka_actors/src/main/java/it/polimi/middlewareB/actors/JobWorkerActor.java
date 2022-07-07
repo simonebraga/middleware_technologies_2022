@@ -19,6 +19,7 @@ public class JobWorkerActor extends AbstractActorWithStash {
     public void echoJobTaskMessage(JobTaskMessage msg) throws JobExecutionException {
         //System.out.println("Started execution");
         if(random.nextDouble() < probabilityOfFailure){
+            msg.incFailures();
             stash();
             System.out.println("Failure!");
             throw new JobExecutionException("Exception in " + msg.getName());
@@ -34,7 +35,7 @@ public class JobWorkerActor extends AbstractActorWithStash {
             throw new RuntimeException(e);
         }
         //System.out.println(completionMessage);
-        sender().tell(new JobCompletedMessage(msg.getKey(), completionMessage), self());
+        sender().tell(new JobCompletedMessage(msg.getKey(), completionMessage, msg.getnOfFailures() + 1), self());
     }
 
 
