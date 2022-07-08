@@ -27,7 +27,7 @@ public class CleaningEnrichment {
         // Default values work in a local environment in IntelliJ
         final String master = args.length > 0 ? args[0] : "local[*]";
         final String bootstrap = args.length > 1 ? args[1] : "localhost:9092";
-        final String topic = args.length > 2 ? args[2] : "rawNoise";
+        final String topic = args.length > 2 ? args[2] : "rawInput";
         final String out_topic = args.length > 3 ? args[3] : "richNoise";
         final String checkpointLocation = args.length > 4 ? args[4] : "/tmp/cleaning_enrichment/checkpoint";
         final String noiseDataLocation = args.length > 5 ? args[5] : "/tmp/cleaning_enrichment/noise_data";

@@ -22,7 +22,7 @@ public class Demo {
         final double max_val = args.length > 5 ? Double.parseDouble(args[5]) : 120.0;
         final int sleep_time_ms = args.length > 6 ? Integer.parseInt(args[6]) : 1000;
         final String bootstrap = args.length > 7 ? args[7] : "localhost:9092";
-        final String topic = args.length > 8 ? args[8] : "rawNoise";
+        final String topic = args.length > 8 ? args[8] : "rawInput";
 
         final Properties properties = new Properties();
         properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrap);
