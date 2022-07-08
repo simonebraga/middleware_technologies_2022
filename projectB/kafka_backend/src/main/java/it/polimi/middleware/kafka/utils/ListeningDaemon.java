@@ -38,11 +38,9 @@ public class ListeningDaemon implements Runnable {
             for (final ConsumerRecord<String, String> record : records) {
                 key = record.key(); value = record.value();
                 if (notificationList.checkRemove(key))
-                    //System.out.println("\nJob with ID <" + key + "> completed!\n" +
-                    //       "Check the result folder \"" + value + "\" for the outcome.\n" +
-                    //       "Type \"help\" for the list of commands.\n");
-                    System.out.println("Job with ID <" + key + "> completed!\n" +
-                            value);
+                    System.out.println("\nJob with ID <" + key + "> completed!\n" +
+                           "Check the result folder \"" + value + "\" for the outcome.\n" +
+                           "Type \"help\" for the list of commands.\n");
             }
         }
     }
