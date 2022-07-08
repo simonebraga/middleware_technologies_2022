@@ -20,6 +20,8 @@ The folder contains useful scripts to run the environment with the correct param
 
 **NOTE: Extract the folder in the root of the relative technology (Kafka_CBIN must be in the same location of bin default Kafka folder).**
 
+**NOTE: Remember that each script should be checked in order to set the correct IP of the client it is running on.**
+
 ### Kafka
 
 <p align="center">
