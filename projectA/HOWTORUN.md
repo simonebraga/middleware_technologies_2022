@@ -22,6 +22,8 @@ Both the folders contain useful scripts to run the environment with the correct 
 
 **NOTE: Extract each folder in the root of the relative technology (Kafka_CBIN must be in the same location of bin default Kafka folder, same for Spark_CBIN).**
 
+**NOTE: Remember that each script should be checked in order to set the correct IP of the client it is running on.**
+
 ### Kafka
 
 <p align="center">
