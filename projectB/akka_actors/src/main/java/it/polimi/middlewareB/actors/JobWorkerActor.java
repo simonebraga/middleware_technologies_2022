@@ -36,6 +36,8 @@ public class JobWorkerActor extends AbstractActorWithStash {
         }
         //System.out.println(completionMessage);
         sender().tell(new JobCompletedMessage(msg.getKey(), completionMessage, msg.getName(), msg.getnOfFailures() + 1), self());
+        System.err.println("Hi! The computation has completed! JobCompletedMessage sent!");
+
     }
 
 
