@@ -69,6 +69,9 @@ public class JobSupervisorActor extends AbstractActor {
 	}
 
 	private void idleUntilNewJob() {
+
+		boolean breakCheck = false;
+
 		while (true) {
 
 			ConsumerRecords<String, String> records = kafkaConsumer.poll(Duration.ofMillis(500));
@@ -80,18 +83,25 @@ public class JobSupervisorActor extends AbstractActor {
 					System.out.println(timestamp + " - key: " + record.key() + ", " + record.value());
 					try {
 						JSONJobTask nextJob = jacksonMapper.readValue(record.value(), JSONJobTask.class);
-						workerActor.tell(new JobTaskMessage(record.key(),
-								nextJob.getName(),
-								nextJob.getInput(),
-								nextJob.getOutput(),
-								nextJob.getParameter(),
-								jobDurations.get(nextJob.getName())), self());
-						pendingJobs++;
+						if (jobDurations.get(nextJob.getName()) != null) {
+							workerActor.tell(new JobTaskMessage(record.key(),
+									nextJob.getName(),
+									nextJob.getInput(),
+									nextJob.getOutput(),
+									nextJob.getParameter(),
+									jobDurations.get(nextJob.getName())), self());
+							pendingJobs++;
+							breakCheck = true;
+						} else {
+							System.err.println("Non existing job requested");
+							kafkaProducer.send(new ProducerRecord<>("completedJobs", record.key(), "NOT_EXISTING_JOB"));
+						}
 					} catch (JsonProcessingException e) {
 						System.err.println("Unable to process job: " + record.key() + ", " + record.value());
+						kafkaProducer.send(new ProducerRecord<>("completedJobs", record.key(), "EVENT_BAD_FORMED"));
 					}
 				}
-				break;
+				if (breakCheck) break;
 			}
 		}
 	}
