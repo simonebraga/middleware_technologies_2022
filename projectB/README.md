@@ -8,6 +8,6 @@
 | What | Who | How much |
 |:-|:-:|:-|
 | Documentation | Simone | Work in progress... |
-| Presentation | Simone | Work in progress... |
+| Presentation | Simone | Completed! |
 | Akka | Alessandro | Work in progress... |
 | Kafka | Simone | Completed! |
