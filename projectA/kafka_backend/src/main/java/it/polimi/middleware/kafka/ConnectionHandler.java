@@ -11,7 +11,7 @@ public class ConnectionHandler {
         // Use default values if not specified otherwise
         // Default values work in a local environment in IntelliJ
         final String bootstrap = args.length > 0 ? args[0] : "localhost:9092";
-        final String topic = args.length > 1 ? args[1] : "rawNoise";
+        final String topic = args.length > 1 ? args[1] : "rawInput";
         final int port = args.length > 2 ? Integer.parseInt(args[2]) : 9999;
 
         //noinspection resource
