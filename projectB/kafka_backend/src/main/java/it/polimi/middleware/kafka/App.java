@@ -1,12 +1,9 @@
 package it.polimi.middleware.kafka;
 
-import java.util.Collections;
-import java.util.Properties;
-import java.util.Scanner;
-
 import it.polimi.middleware.kafka.utils.Job;
 import it.polimi.middleware.kafka.utils.JobList;
 import it.polimi.middleware.kafka.utils.ListeningDaemon;
+import it.polimi.middleware.kafka.utils.NotificationList;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -15,7 +12,9 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 
-import it.polimi.middleware.kafka.utils.NotificationList;
+import java.util.Collections;
+import java.util.Properties;
+import java.util.Scanner;
 
 public class App {
 
@@ -52,7 +51,7 @@ public class App {
                 "\t\"help\" - List of the possible commands.\n");
         System.out.println("<JOB_TYPE> shall be replaced with one of the following:");
         for (Job job : jobList.getJobList()) {
-            System.out.println("\t\"" + job.getName() + "\" <SOURCE_IMAGE> <PARAMETER_STRING> <RESULT_FOLDER>");
+            System.out.println("\t\"" + job.getName() + "\" <SOURCE_IMAGE> <" + job.getParam_name() + "> <RESULT_FOLDER>");
         } System.out.println();
     }
 

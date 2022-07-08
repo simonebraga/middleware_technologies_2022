@@ -18,7 +18,7 @@ public class JobList implements Serializable {
     public void initJobList(String jobFile) {
 
         jobList = new Job[1];
-        jobList[0] = new Job("job-mockup", 0);
+        jobList[0] = new Job("job-mockup", "PARAMETER_MOCKUP");
 
         try {
             jobList = MiscUtils.jacksonMapper.readValue(new File(jobFile), Job[].class);
@@ -41,12 +41,5 @@ public class JobList implements Serializable {
         for (int i = 0; i < jobList.length; i++)
             jobIDList[i] = jobList[i].getName();
         return new ArrayList<>(Arrays.asList(jobIDList));
-    }
-
-    @Override
-    public String toString() {
-        return "JobList{" +
-                "jobList=" + Arrays.toString(jobList) +
-                '}';
     }
 }
