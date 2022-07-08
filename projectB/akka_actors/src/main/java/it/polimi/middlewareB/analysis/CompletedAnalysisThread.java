@@ -1,7 +1,9 @@
 package it.polimi.middlewareB.analysis;
 
+import akka.actor.ActorRef;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.polimi.middlewareB.AlwaysSeekToBeginningListener;
+import it.polimi.middlewareB.messages.StartAnalysisMessage;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -17,8 +19,9 @@ import java.util.Properties;
 import java.util.TimeZone;
 
 public class CompletedAnalysisThread implements Runnable{
-    public CompletedAnalysisThread(String kafkaBootstrap){
+    public CompletedAnalysisThread(String kafkaBootstrap, ActorRef retriesAnalysisActor){
         this.kafkaBootstrap = kafkaBootstrap;
+        this.retriesAnalysisActor = retriesAnalysisActor;
     }
 
     @Override
@@ -85,7 +88,8 @@ public class CompletedAnalysisThread implements Runnable{
                     completedInMonth + " jobs completed in last month\n" +
                     "----------------");
 
-
+            //As commodity, launch from here the retries analysis
+            retriesAnalysisActor.tell(new StartAnalysisMessage(), ActorRef.noSender());
             try {
                 Thread.sleep(1000 * 60);
             } catch (InterruptedException e) {
@@ -95,4 +99,5 @@ public class CompletedAnalysisThread implements Runnable{
     }
 
     private final String kafkaBootstrap;
+    private final ActorRef retriesAnalysisActor;
 }

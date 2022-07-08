@@ -55,7 +55,7 @@ public class ClusterStarter {
 			actors.add(sys.actorOf(JobSupervisorActor.props(bootstrap,retriesAnalysisActor,jobDurations), "supervisor" + i));
 		}
 
-		Runnable completedAnalysis = new CompletedAnalysisThread(bootstrap);
+		Runnable completedAnalysis = new CompletedAnalysisThread(bootstrap, retriesAnalysisActor);
 		new Thread(completedAnalysis).start();
 		Runnable pendingAnalysis = new PendingAnalysisThread(bootstrap);
 		new Thread(pendingAnalysis).start();
