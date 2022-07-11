@@ -11,4 +11,4 @@ all: $(PROGRAM)
 
 
 $(PROGRAM): main.c
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CC) -o $@ $^ $(CFLAGS)
