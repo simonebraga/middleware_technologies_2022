@@ -24,11 +24,7 @@ public class JobWorkerActor extends AbstractActorWithStash {
             System.out.println("Failure!");
             throw new JobExecutionException("Exception in " + msg.getName());
         }
-        String completionMessage = "Completed " + msg.getName() +
-                ", key " + msg.getKey() + ": " +
-                "input " + msg.getInputFile() + ", " +
-                "output " + msg.getOutputFile() + ", " +
-                "target extension " + msg.getParameter();
+        String completionMessage = msg.getOutputFile();
         try {
             Thread.sleep(msg.getDuration());
         } catch (InterruptedException e) {
@@ -36,6 +32,8 @@ public class JobWorkerActor extends AbstractActorWithStash {
         }
         //System.out.println(completionMessage);
         sender().tell(new JobCompletedMessage(msg.getKey(), completionMessage, msg.getName(), msg.getnOfFailures() + 1), self());
+        System.err.println("Hi! The computation has completed! JobCompletedMessage sent!");
+
     }
 
 
