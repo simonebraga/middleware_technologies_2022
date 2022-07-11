@@ -1,7 +1,7 @@
 [
-  {"name": "image-compression", "duration": 1000},
-  {"name": "document-conversion", "duration": 2000},
-  {"name": "text-formatting", "duration": 3000},
-  {"name": "MPI-application", "duration": 5000},
-  {"name": "compilation", "duration": 10000}
+  {"name": "image-compression", "param_name": "COMPRESSION_RATIO"},
+  {"name": "document-conversion", "param_name": "TARGET_EXTENSION"},
+  {"name": "text-formatting", "param_name": "FORMATTING_RULES"},
+  {"name": "MPI-application", "param_name": "CORE_NUMBER"},
+  {"name": "compilation", "param_name": "COMPILER_NAME"}
 ]
