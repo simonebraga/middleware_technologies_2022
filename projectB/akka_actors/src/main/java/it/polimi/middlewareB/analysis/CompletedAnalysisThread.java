@@ -1,32 +1,31 @@
-package it.polimi.middlewareB;
+package it.polimi.middlewareB.analysis;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import it.polimi.middlewareB.AlwaysSeekToBeginningListener;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.TimeZone;
 
-public class AnalysisThread implements Runnable{
-    public AnalysisThread(String bootstrap){
-        this.bootstrap = bootstrap;
+public class CompletedAnalysisThread implements Runnable{
+    public CompletedAnalysisThread(String kafkaBootstrap){
+        this.kafkaBootstrap = kafkaBootstrap;
     }
 
     @Override
     public void run() {
         Properties config = new Properties();
-        config.put(ConsumerConfig.GROUP_ID_CONFIG, "analysis");
-        config.put("bootstrap.servers", bootstrap);
+        config.put(ConsumerConfig.GROUP_ID_CONFIG, "CompletedAnalysis");
+        config.put("bootstrap.servers", kafkaBootstrap);
         config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         //TODO are we sure of this?
@@ -38,8 +37,7 @@ public class AnalysisThread implements Runnable{
 
 
         ObjectMapper jacksonMapper = new ObjectMapper();
-        AlwaysSeekToBeginningListener consumerRebalanceListener =new AlwaysSeekToBeginningListener<String, String>(consumer);
-        consumer.subscribe(List.of("completedJobs"), consumerRebalanceListener);
+        consumer.subscribe(List.of("completedJobs"));
 
         while(true) {
 
@@ -52,7 +50,7 @@ public class AnalysisThread implements Runnable{
 
             LocalDateTime now = LocalDateTime.now();
             consumer.seekToBeginning(consumer.assignment());
-            ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(10));
+            ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
 
             if (records.count() != 0) {
                 for (ConsumerRecord<String, String> record : records) {
@@ -76,12 +74,14 @@ public class AnalysisThread implements Runnable{
                     }
                 }
             }
-            System.out.println("Analysis done!\n" +
+            System.out.println("----------------\n" +
+                    "Analysis done!\n" + //TODO remove the debug analysis
                     "DEBUG: " + debugCompletedInMinute + " jobs completed in last minute\n" +
                     completedInHour + " jobs completed in last hour\n" +
                     completedInDay + " jobs completed in last day\n" +
                     completedInWeek + " jobs completed in last week\n" +
-                    completedInMonth + " jobs completed in last month");
+                    completedInMonth + " jobs completed in last month\n" +
+                    "----------------");
 
 
             try {
@@ -92,5 +92,5 @@ public class AnalysisThread implements Runnable{
         }
     }
 
-    private final String bootstrap;
+    private final String kafkaBootstrap;
 }
