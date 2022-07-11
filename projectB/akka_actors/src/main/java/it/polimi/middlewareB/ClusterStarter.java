@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.*;
 
+import akka.routing.BalancingPool;
 import akka.routing.Broadcast;
 import akka.routing.SmallestMailboxPool;
 import com.fasterxml.jackson.core.JsonParseException;
@@ -17,9 +18,10 @@ import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import it.polimi.middlewareB.JSONJobDuration;
-import it.polimi.middlewareB.JSONJobTask;
 import it.polimi.middlewareB.actors.JobSupervisorActor;
+import it.polimi.middlewareB.analysis.CompletedAnalysisThread;
+import it.polimi.middlewareB.analysis.PendingAnalysisThread;
+import it.polimi.middlewareB.analysis.RetriesAnalysisActor;
 import it.polimi.middlewareB.messages.JobTaskMessage;
 import it.polimi.middlewareB.messages.KafkaConfigurationMessage;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -46,14 +48,17 @@ public class ClusterStarter {
 		//ActorSystem sys = ActorSystem.create("ProjB_actor_system", config);
 		ActorSystem sys = ActorSystem.create("ProjB_actor_system");
 
-		//It would be best using a BalancingPool, but then we'd lost the ability to use a Broadcast message
-		ActorRef mainDispatcher = sys.actorOf(new SmallestMailboxPool(3).props(JobSupervisorActor.props()),
-				"roundrobinpool");
+		ActorRef retriesAnalysisActor = sys.actorOf(RetriesAnalysisActor.props());
+		//It would be best using a BalancingPool
+		ActorRef mainDispatcher = sys.actorOf(new SmallestMailboxPool(3)
+						.props(JobSupervisorActor.props(bootstrap, retriesAnalysisActor)),
+				"projectBpool");
 
-		mainDispatcher.tell(new Broadcast(new KafkaConfigurationMessage(bootstrap)), ActorRef.noSender());
 
-		Runnable analysis = new AnalysisThread(bootstrap);
-		new Thread(analysis).start();
+		Runnable completedAnalysis = new CompletedAnalysisThread(bootstrap);
+		new Thread(completedAnalysis).start();
+		Runnable pendingAnalysis = new PendingAnalysisThread(bootstrap);
+		new Thread(pendingAnalysis).start();
 		//testBasicMessages(mainDispatcher, jobDurations);
 		processPendingJobs(mainDispatcher, bootstrap, jobDurations);
 		sys.terminate();
@@ -95,18 +100,31 @@ public class ClusterStarter {
 		System.out.println("Sending a basic message...");
 
 		// TEST CODE //
+		String repeatedJob = "compilation";
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey1", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey2", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey3", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey4", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey5", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey6", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey7", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey8", repeatedJob, "src", "target", "gcc", jobDurations.get(repeatedJob)), null);
 
-		mainDispatcher.tell(new JobTaskMessage("dummyKey", "image-compression", "/another/input", "/another/output", "20", jobDurations.get("image-compression")), null);
-		mainDispatcher.tell(new JobTaskMessage("dummyKey", "text-formatting", "/another/input", "/another/output", "s/ /  /", jobDurations.get("text-formatting")), null);
-		mainDispatcher.tell(new JobTaskMessage("dummyKey", "document-conversion", "/another/input", "/another/output", ".pdf", jobDurations.get("document-conversion")), null);
-		mainDispatcher.tell(new JobTaskMessage("dummyKey", "image-compression", "/another/input", "/another/output", "40", jobDurations.get("image-compression")), null);
-		mainDispatcher.tell(new JobTaskMessage("dummyKey", "text-formatting", "/another/input", "/another/output", "grep akka", jobDurations.get("text-formatting")), null);
-		mainDispatcher.tell(new JobTaskMessage("dummyKey", "document-conversion", "/another/input", "/another/output", ".pdf", jobDurations.get("document-conversion")), null);
-		mainDispatcher.tell(new JobTaskMessage("dummyKey", "image-compression", "/another/input", "/another/output", "45", jobDurations.get("image-compression")), null);
-		mainDispatcher.tell(new JobTaskMessage("dummyKey", "text-formatting", "/another/input", "/another/output", "tee", jobDurations.get("text-formatting")), null);
-		mainDispatcher.tell(new JobTaskMessage("dummyKey", "document-conversion", "/another/input", "/another/output", ".pdf", jobDurations.get("document-conversion")), null);
+//
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey1", "image-compression", "/another/input", "/another/output", "20", jobDurations.get("image-compression")), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey2", "text-formatting", "/another/input", "/another/output", "s/ /  /", jobDurations.get("text-formatting")), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey3", "document-conversion", "/another/input", "/another/output", ".pdf", jobDurations.get("document-conversion")), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey4", "image-compression", "/another/input", "/another/output", "40", jobDurations.get("image-compression")), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey5", "text-formatting", "/another/input", "/another/output", "grep akka", jobDurations.get("text-formatting")), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey6", "document-conversion", "/another/input", "/another/output", ".pdf", jobDurations.get("document-conversion")), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey7", "image-compression", "/another/input", "/another/output", "45", jobDurations.get("image-compression")), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey8", "text-formatting", "/another/input", "/another/output", "tee", jobDurations.get("text-formatting")), null);
+		//mainDispatcher.tell(new JobTaskMessage("dummyKey9", "document-conversion", "/another/input", "/another/output", ".pdf", jobDurations.get("document-conversion")), null);
+
+		System.out.println("Messages sent!");
+
 		try {
-			Thread.sleep(20_000);
+			Thread.sleep(60_000);
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e);
 		}
@@ -133,7 +151,7 @@ public class ClusterStarter {
 		ObjectMapper jacksonMapper = new ObjectMapper();
 
 		while(true) {
-			ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(10));
+			ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(500));
 			if (records.count() != 0) {
 				for (ConsumerRecord<String, String> record : records) {
 					LocalDateTime timestamp = LocalDateTime.ofInstant(Instant.ofEpochMilli(record.timestamp()),
@@ -148,7 +166,7 @@ public class ClusterStarter {
 					}
 				}
 			}
-			System.out.println("Processing done!");
+			//System.out.println("Processing done!");
 		}
 	}
 
