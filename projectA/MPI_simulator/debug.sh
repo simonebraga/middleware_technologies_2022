@@ -14,4 +14,4 @@ mpirun --use-hwthread-cpus mpi_simulator --db \
        -t 1 \
        --origin-latitude  45.4578090 \
        --origin-longitude 9.1737100 \
-       --kafka-bridge-address 25.29.114.127 # 127.0.0.1
+       --kafka-bridge-address $1 #25.29.114.127 # 127.0.0.1
