@@ -17,9 +17,13 @@ The distributed system is split into two modules:
 
 * A **task performance module** based on Akka.
 
+&nbsp;
+
 <p align="center">
   <img width=80% src="./resources/component_diagram.png" />
 </p>
+
+&nbsp;
 
 The communication between modules is performed through the Internet.
 
@@ -49,13 +53,9 @@ Supervisors and workers are two distinct entities because the latter could event
 
 ## Design choices
 
-This section contains an explanation of what led to the choice of every involved technology, as long as a summary of the reasoning for which other technologies have been excluded.
-
 ### Kafka for task aggregation
 
-The main factor that led to this choice is the storage capability of Kafka which makes it perfect for the implementation of a queue. The use of Kafka allowed load balancing through the feature of consumer groups and made the whole system intrinsically asynchronous.
-
-Moreover, Kafka has a very powerful horizontal scalability so when the system grows in size it's enough to distribute the Kafka cluster and replicate the nodes to hold the load.
+The main factor that led to this choice is the storage capability of Kafka which makes it perfect for the implementation of a queue. The use of Kafka allowed load balancing through the feature of consumer groups and made the whole system intrinsically asynchronous. Moreover, Kafka has a very powerful horizontal scalability so when the system grows in size it's enough to distribute the Kafka cluster and replicate the nodes to hold the load.
 
 ### Akka for task performance
 
@@ -65,14 +65,22 @@ Since the specification requires scheduling the task execution onto a set of pro
 
 Even if Spark is very powerful when it comes to task performance, the scenario for this application didn't fit the Spark typical use-case. Spark is very good at processing pre-deployed operations on a huge amount of data, while in this application the amount of data isn't a problem since the information exchanged between the user and the back-end are only task performance requests. Moreover, when a failure occurs in Spark, it is necessary to reboot the whole system. In the actual scenario of this application, failures may affect only a partition of the system.
 
+<div class="page"/>
+
 ## Main functionalities
 
 It is meaningful, for this application, to show the flowchart of the life of each user request. The overall picture of the system is given by the union of many requests processed simultaneously.
 
+&nbsp;
+
 <p align="center">
-  <img width=70% src="./resources/flowchart.png" />
+  <img width=50% src="./resources/flowchart.png" />
 </p>
+
+&nbsp;
 
 ## Conclusions
 
 The intrinsic modularity of the systems allows deployment without bothering with the links between modules. Each module can be run separately from the others since the system is fully asynchronous. Each module was independently tested with corner cases and in a maximum stress environment.
+
+**Authors:** Simone Braga, Alessandro Bertulli, Marco Dottor
