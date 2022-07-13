@@ -19,9 +19,13 @@ To better exploit the potential of every technology involved, the distributed sy
 
 * A **simulation module**, based on MPI, whose purpose is to hide to the back-end module the lack of data when the use of sensors is not allowed.
 
+&nbsp;
+
 <p align="center">
   <img width=80% src="./resources/component_diagram.png" />
 </p>
+
+&nbsp;
 
 The communication between modules is performed through the Internet.
 
@@ -60,8 +64,6 @@ This module must then produce and send data in the **exact** same format produce
 
 ## Design choices
 
-This section contains an explanation of what led to the choice of every involved technology, as long as a summary of the reasoning for which other technologies have been excluded.
-
 ### Spark for data processing
 
 The back-end module is a Java application developed using Spark. Since there are no guarantees on the amount of incoming data, it was necessary to build a flexible system capable of handling two extreme cases:
@@ -82,13 +84,15 @@ The sensors are implemented in C using Contiki-NG and simulated using Cooja, whi
 
 The output record of each sensor is structured as follows (depending on the outcome of the pre-processing):
 
+&nbsp;
+
 <p align="center">
   <img width=80% src="./resources/record.png" />
 </p>
 
-Unlike in our early analysis of the system, it is not necessary to keep the notion of "sensor" over time. The entities of this module are meaningful only until they build the record with the detection. We can then forget about them and accept another read as completely uncorrelated with the previous one. This implies a light implementation also for the "router" nodes, whose only purpose is to redirect the collected data to the back-end.
-
 <div class="page"/>
+
+Unlike in our early analysis of the system, it is not necessary to keep the notion of "sensor" over time. The entities of this module are meaningful only until they build the record with the detection. We can then forget about them and accept another read as completely uncorrelated with the previous one. This implies a light implementation also for the "router" nodes, whose only purpose is to redirect the collected data to the back-end.
 
 ### MPI for simulation
 
@@ -102,9 +106,13 @@ An alternative we discussed for the simulation was Akka, as we thought of repres
 
 Since the application is built to work at runtime with a continuous stream of incoming data, the following diagram will represent the path of each record produced by the sensors. The overall view of the application is given by multiple records that fulfill this path in parallel.
 
+&nbsp;
+
 <p align="center">
   <img width=80% src="./resources/sequence_diagram.png" />
 </p>
+
+<div class="page"/>
 
 ### Step 1 (Pre-processing)
 
@@ -130,3 +138,5 @@ _In case the values come from a simulation, the first two steps are replaced wit
 ## Conclusions
 
 The intrinsic modularity of the systems allows deployment without bothering with the links between modules. Each module can be run separately from the others since the connection is kept as light as possible. More importantly, disaggregation allowed each module to be independently tested with corner cases and in a maximum stress environment.
+
+**Authors:** Simone Braga, Alessandro Bertulli, Marco Dottor
