@@ -29,7 +29,7 @@ The system is based on the assumption that communication between modules is neve
 
 ### Data aggregation and processing module (Kafka and Spark)
 
-This module consists of a Spark distributed cluster that analyzes the noise data read from a Kafka topic. This topic aggregates the data coming from end devices ingesting strings through TCP sockets. Once the Spark engine has processed the data and has computed some metrics, the results are stored in another proper Kafka topic.
+This module consists of a Spark cluster that analyzes the noise data read from a Kafka topic. This topic aggregates the data coming from end devices ingesting strings through TCP sockets. Once the Spark Streaming engine has processed the data the results are stored in another proper Kafka topic available to the Spark SQL engine to compute some metrics.
 
 Roughly speaking, the map-reduce paradigm of Spark implements the following functionalities:
 
@@ -123,7 +123,7 @@ Kafka takes care of aggregating the ingested data in a single topic that can be 
 
 ### Step 4 (Data cleaning, enrichment and analysis)
 
-The Spark Streaming engine reads the data from the Kafka topic. Some predefined metrics are periodically recomputed and made persistent. At every moment the back-end user can read the Kafka topic where the metrics are stored.
+The Spark Streaming engine reads the data from the Kafka topic. Some predefined operations are applied to the input data and results are made persistent. At every moment the back-end user can read the Kafka topic where the results are stored or perform some analysis on the data through the Spark SQL engine.
 
 _In case the values come from a simulation, the first two steps are replaced with a single "simulation" step. As already stated, from the perspective of the back-end, this complexity is hidden._
 
