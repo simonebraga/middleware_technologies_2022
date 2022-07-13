@@ -7,7 +7,7 @@
 
 | What | Who | How much |
 |:-|:-:|:-|
-| Documentation | Simone | Work in progress... |
+| Documentation | Simone | Completed! |
 | Presentation | Simone | Completed! |
-| Akka | Alessandro | Work in progress... |
+| Akka | Alessandro | Completed! |
 | Kafka | Simone | Completed! |
