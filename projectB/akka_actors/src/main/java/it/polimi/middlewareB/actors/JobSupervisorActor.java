@@ -39,6 +39,7 @@ public class JobSupervisorActor extends AbstractActor {
 	}
 
 	public JobSupervisorActor(String kafkaBootstrap, ActorRef retriesAnalysisActor, Map<String, Integer> jobDurations){
+		System.out.println("JobSupervisorActor started!");
 		final Properties producerProps = new Properties();
 		producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrap);
 		producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
