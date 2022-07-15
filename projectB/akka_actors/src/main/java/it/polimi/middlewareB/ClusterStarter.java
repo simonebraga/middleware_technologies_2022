@@ -31,9 +31,13 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 
 public class ClusterStarter {
+	private static final String kafkaDefaultArgument = "localhost:9092";
+	private static final int actorPoolDefaultDimension = 3;
 
 	public static void main(String[] args) {
-		final String bootstrap = args.length > 0 ? args[0] : "localhost:9092";
+
+		final String bootstrap = args.length > 0 ? args[0] : kafkaDefaultArgument;
+		final int actorPoolDim = args.length > 1 ? Integer.parseInt(args[1]) : actorPoolDefaultDimension;
 
 		Config config = ConfigFactory.parseFile(new File("Remote_configuration.txt"));
 		String jobJSONFile = "src/main/resources/job_list.json";
@@ -51,7 +55,7 @@ public class ClusterStarter {
 		ActorRef retriesAnalysisActor = sys.actorOf(RetriesAnalysisActor.props());
 		//It would be best using a BalancingPool
 		ArrayList<ActorRef> actors = new ArrayList<>();
-		for (int i = 0; i < 3; i++) {
+		for (int i = 0; i < actorPoolDim; i++) {
 			actors.add(sys.actorOf(JobSupervisorActor.props(bootstrap,retriesAnalysisActor,jobDurations), "supervisor" + i));
 		}
 
