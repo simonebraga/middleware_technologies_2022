@@ -19,13 +19,9 @@ The distributed system is split into two modules:
 
 * A **task execution module** based on Akka.
 
-&nbsp;
-
 <p align="center">
   <img width=80% src="./resources/component_diagram.png" />
 </p>
-
-&nbsp;
 
 The communication between modules is performed through network (local or the Internet).
 
@@ -75,19 +71,13 @@ Since the specification requires scheduling the task execution onto a set of pro
 
 Even if Spark is very powerful when it comes to task performance, the scenario for this application didn't fit the Spark typical use-case. Spark is very good at processing pre-deployed operations on a huge amount of data, while in this application the amount of data isn't a problem since the information exchanged between the user and the back-end are only task performance requests. Moreover, when a failure occurs in Spark, it is necessary to reboot the whole system. In the actual scenario of this application, failures may affect only a partition of the system.
 
-<div class="page"/>
-
 ## Main functionalities
 
 It is meaningful, for this application, to show the flowchart of the life of each user request. The overall picture of the system is given by the union of many requests processed simultaneously.
 
-&nbsp;
-
 <p align="center">
   <img width=50% src="./resources/flowchart.png" />
 </p>
-
-&nbsp;
 
 ## Conclusions
 
