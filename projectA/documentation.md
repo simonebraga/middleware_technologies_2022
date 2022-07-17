@@ -29,6 +29,8 @@ To better exploit the potential of every technology involved, the distributed sy
 
 The communication between modules is performed through the Internet.
 
+<div class="page"/>
+
 The system is based on the assumption that communication between modules is never guaranteed since the majority of the devices are intrinsically very unstable (we are talking about IoT devices held by common users). As a consequence, the information records exchanged between the front-end and back-end should be kept as light as possible. For a detailed explanation of how every record is composed, see the section about **design choices**.
 
 ### Data aggregation and processing module (Kafka and Spark)
@@ -100,7 +102,7 @@ The simulations are implemented in C using MPI, a specification for high-perform
 
 **Why not Akka?**
 
-An alternative we discussed for the simulation was Akka, as we thought of representing each entity capable of producing noise (people, vehicles) as an actor, but as the simulation grows in size, Akka wouldn't be able to keep up with the growing need of computational power. Instead, we opted for MPI which is much faster and needs fewer resources to run (no need for the JVM).
+An alternative we discussed for the simulation was Akka, as we thought of representing each entity capable of producing noise (people, vehicles) as an actor, but as the simulation grows in size, Akka wouldn't be able to keep up with the growing need for computational power. Instead, we opted for MPI which is much faster and needs fewer resources to run (no need for the JVM).
 
 ## Main functionalities
 
@@ -137,6 +139,6 @@ _In case the values come from a simulation, the first two steps are replaced wit
 
 ## Conclusions
 
-The intrinsic modularity of the systems allows deployment without bothering with the links between modules. Each module can be run separately from the others since the connection is kept as light as possible. More importantly, disaggregation allowed each module to be independently tested with corner cases and in a maximum stress environment.
+The intrinsic modularity of the systems allows deployment without bothering with the links between modules. Each module can be run separately from the others since the connection is kept as light as possible. More importantly, disaggregation allowed each module to be independently tested with corner cases and in a maximum-stress environment.
 
 **Authors:** Simone Braga, Alessandro Bertulli, Marco Dottor
