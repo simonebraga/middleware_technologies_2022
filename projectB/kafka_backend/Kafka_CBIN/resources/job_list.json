@@ -1,0 +1,7 @@
+[
+  {"name": "image-compression", "param_name": "COMPRESSION_RATIO"},
+  {"name": "document-conversion", "param_name": "TARGET_EXTENSION"},
+  {"name": "text-formatting", "param_name": "FORMATTING_RULES"},
+  {"name": "MPI-application", "param_name": "CORE_NUMBER"},
+  {"name": "compilation", "param_name": "COMPILER_NAME"}
+]
