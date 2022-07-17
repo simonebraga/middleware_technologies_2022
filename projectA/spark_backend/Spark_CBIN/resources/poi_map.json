@@ -1,0 +1,20 @@
+[
+  {"id":"vespucci_beach","x":19.5,"y":19.5},
+  {"id":"international_airport","x":19.5,"y":8.4},
+  {"id":"south_los_santos","x":28.3,"y":15.5},
+  {"id":"ls_port","x":29.3,"y":9.6},
+  {"id":"east_los_santos","x":34.2,"y":16.0},
+  {"id":"downtown","x":27.0,"y":21.4},
+  {"id":"vinewood","x":28.2,"y":26.3},
+  {"id":"richman","x":19.1,"y":27.6},
+  {"id":"banham_canyon","x":13.0,"y":34.7},
+  {"id":"great_chaparral","x":29.9,"y":39.5},
+  {"id":"tataviam_mountains","x":40.9,"y":28.4},
+  {"id":"san_chianski_mountain","x":48.6,"y":46.8},
+  {"id":"sandy_shores","x":39.5,"y":51.9},
+  {"id":"fort_zancudo","x":12.7,"y":47.6},
+  {"id":"mount_josiah","x":20.2,"y":50.9},
+  {"id":"grapeseed","x":44.1,"y":59.2},
+  {"id":"mount_chiliad","x":30.6,"y":63.5},
+  {"id":"paleto_bay","x":28.2,"y":70.5}
+]
