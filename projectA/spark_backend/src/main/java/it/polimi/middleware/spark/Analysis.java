@@ -59,102 +59,136 @@ public class Analysis {
                 DataTypes.createStructField("timestamp", DataTypes.TimestampType, true),
         });
 
-        // Initialize the static dataset with all the noise records
-        Dataset<Row> fullDataset = spark
-                .read()
-                .schema(richSchema)
-                .format("csv")
-                .option("header", "true")
-                .option("delimiter", ",")
-                .csv(noiseDataLocation + "/*/*.csv"); // This means that every .csv file is used as a source
-
         /* END-SECTION */
-        /* SECTION: Data analysis */
-
-        // Q1: Hourly, daily, and weekly moving average of noise level, for each point of interest
-        // Implementation: Select rows from the last hour/day/week, aggregate over "poi_id" performing the average of "val"
-
-        // This query is intended only as a demo. Don't use it unless you are not a developer.
-        Dataset<Row> minuteAverage = fullDataset
-                .where(col("timestamp").gt(current_timestamp().minus(expr("INTERVAL 1 MINUTE"))))
-                .select("poi_id", "val")
-                .groupBy("poi_id")
-                .avg("val")
-                .withColumnRenamed("avg(val)", "avg_noise");
-
-        Dataset<Row> hourlyAverage = fullDataset
-                .where(col("timestamp").gt(current_timestamp().minus(expr("INTERVAL 1 HOUR"))))
-                .select("poi_id", "val")
-                .groupBy("poi_id")
-                .avg("val")
-                .withColumnRenamed("avg(val)", "avg_noise");
-
-        Dataset<Row> dailyAverage = fullDataset
-                .where(col("timestamp").gt(current_timestamp().minus(expr("INTERVAL 1 DAY"))))
-                .select("poi_id", "val")
-                .groupBy("poi_id")
-                .avg("val")
-                .withColumnRenamed("avg(val)", "avg_noise");
-
-        Dataset<Row> weeklyAverage = fullDataset
-                .where(col("timestamp").gt(current_timestamp().minus(expr("INTERVAL 1 WEEK"))))
-                .select("poi_id", "val")
-                .groupBy("poi_id")
-                .avg("val")
-                .withColumnRenamed("avg(val)", "avg_noise");
-
-        // Q2: Top 10 points of interest with the highest level of noise over the last hour
-        // Implementation: Starting from the hourly Q1, order by descending "avg_noise" and select first 10 rows
-
-        Dataset<Row> top10poi = hourlyAverage
-                .orderBy(desc("avg_noise"))
-                .limit(10);
-
-        // Q3: Point of interest with the longest streak of good noise level
-        // Implementation: Select the last over-threshold value for each POI,
-        // compute the time interval between the value and the current timestamp
-        // then select the POI with the longest streak
-
-        Dataset<Row> noiseStreak = fullDataset
-                .where(col("val").gt(q3_threshold))
-                .groupBy("poi_id")
-                .agg(max("timestamp"))
-                .withColumn("streak", current_timestamp().minus(col("max(timestamp)")))
-                .orderBy(desc("streak"))
-                .select("poi_id")
-                .limit(1);
-
-        /* END-SECTION */
-        /* SECTION: Compute results */
+        /* SECTION: Data analysis & Compute results */
 
         System.out.println("[LOG] Analysis module started.\n");
         printInstructions();
         Scanner in = new Scanner(System.in); String s;
         while (!(s=in.nextLine()).equals("quit")) {
             switch (s) {
-                case "q1m":
+                case "demo":
+                    System.out.println();
                     printWarning();
                     System.out.println("\nOutput of demo query:");
-                    minuteAverage.show(poi_amount, false);
+
+                    // This query is intended only as a demo. Don't use it unless you are not a developer.
+                    Dataset<Row> fullDataset = spark
+                            .read()
+                            .schema(richSchema)
+                            .format("csv")
+                            .option("header", "true")
+                            .option("delimiter", ",")
+                            .csv(noiseDataLocation + "/*/*.csv"); // This means that every .csv file is used as a source
+
+                    System.out.println("Total number of records is " + fullDataset.count() + "\n");
                     break;
+
+                // Q1: Hourly, daily, and weekly moving average of noise level, for each point of interest
+                // Implementation: Select rows from the last hour/day/week, aggregate over "poi_id" performing the average of "val"
+
                 case "q1h":
                     System.out.println("\nOutput of query 1 (hourly):");
+
+                    Dataset<Row> hourlyAverage = spark
+                            .read()
+                            .schema(richSchema)
+                            .format("csv")
+                            .option("header", "true")
+                            .option("delimiter", ",")
+                            .csv(noiseDataLocation + "/*/*.csv")
+                            .where(col("timestamp").gt(current_timestamp().minus(expr("INTERVAL 1 HOUR"))))
+                            .select("poi_id", "val")
+                            .groupBy("poi_id")
+                            .avg("val")
+                            .withColumnRenamed("avg(val)", "avg_noise");
+
                     hourlyAverage.show(poi_amount, false);
                     break;
                 case "q1d":
                     System.out.println("\nOutput of query 1 (daily):");
+
+                    Dataset<Row> dailyAverage = spark
+                            .read()
+                            .schema(richSchema)
+                            .format("csv")
+                            .option("header", "true")
+                            .option("delimiter", ",")
+                            .csv(noiseDataLocation + "/*/*.csv")
+                            .where(col("timestamp").gt(current_timestamp().minus(expr("INTERVAL 1 DAY"))))
+                            .select("poi_id", "val")
+                            .groupBy("poi_id")
+                            .avg("val")
+                            .withColumnRenamed("avg(val)", "avg_noise");
+
                     dailyAverage.show(poi_amount, false);
                     break;
                 case "q1w":
                     System.out.println("\nOutput of query 1 (weekly):");
+
+                    Dataset<Row> weeklyAverage = spark
+                            .read()
+                            .schema(richSchema)
+                            .format("csv")
+                            .option("header", "true")
+                            .option("delimiter", ",")
+                            .csv(noiseDataLocation + "/*/*.csv")
+                            .where(col("timestamp").gt(current_timestamp().minus(expr("INTERVAL 1 WEEK"))))
+                            .select("poi_id", "val")
+                            .groupBy("poi_id")
+                            .avg("val")
+                            .withColumnRenamed("avg(val)", "avg_noise");
+
                     weeklyAverage.show(poi_amount, false);
                     break;
+
+                // Q2: Top 10 points of interest with the highest level of noise over the last hour
+                // Implementation: Starting from the hourly Q1, order by descending "avg_noise" and select first 10 rows
+
                 case "q2":
                     System.out.println("\nOutput of query 2:");
+
+                    Dataset<Row> top10poi = spark
+                            .read()
+                            .schema(richSchema)
+                            .format("csv")
+                            .option("header", "true")
+                            .option("delimiter", ",")
+                            .csv(noiseDataLocation + "/*/*.csv")
+                            .where(col("timestamp").gt(current_timestamp().minus(expr("INTERVAL 1 HOUR"))))
+                            .select("poi_id", "val")
+                            .groupBy("poi_id")
+                            .avg("val")
+                            .withColumnRenamed("avg(val)", "avg_noise")
+                            .orderBy(desc("avg_noise"))
+                            .limit(10);
+
                     top10poi.show(10, false);
                     break;
+
+                // Q3: Point of interest with the longest streak of good noise level
+                // Implementation: Select the last over-threshold value for each POI,
+                // compute the time interval between the value and the current timestamp
+                // then select the POI with the longest streak
+
                 case "q3":
                     System.out.println("\nOutput of query 3:");
+
+                    Dataset<Row> noiseStreak = spark
+                            .read()
+                            .schema(richSchema)
+                            .format("csv")
+                            .option("header", "true")
+                            .option("delimiter", ",")
+                            .csv(noiseDataLocation + "/*/*.csv")
+                            .where(col("val").gt(q3_threshold))
+                            .groupBy("poi_id")
+                            .agg(max("timestamp"))
+                            .withColumn("streak", current_timestamp().minus(col("max(timestamp)")))
+                            .orderBy(desc("streak"))
+                            .select("poi_id")
+                            .limit(1);
+
                     noiseStreak.show(1, false);
                     break;
                 default:
