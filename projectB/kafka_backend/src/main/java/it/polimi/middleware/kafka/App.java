@@ -51,7 +51,7 @@ public class App {
                 "\t\"help\" - List of the possible commands.\n");
         System.out.println("<JOB_TYPE> shall be replaced with one of the following:");
         for (Job job : jobList.getJobList()) {
-            System.out.println("\t\"" + job.getName() + "\" <SOURCE_IMAGE> <" + job.getParam_name() + "> <RESULT_FOLDER>");
+            System.out.println("\t\"" + job.getName() + "\" <SOURCE_FOLDER> <" + job.getParam_name() + "> <RESULT_FOLDER>");
         } System.out.println();
     }
 
