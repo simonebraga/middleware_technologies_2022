@@ -8,7 +8,7 @@ export MIN_X=0.0
 export MAX_X=60.0
 export MIN_Y=0.0
 export MAX_Y=80.0
-export SLEEPTIME=200 # In milliseconds
+export SLEEPTIME=1000 # In milliseconds
 export KAFKA_BOOTSTRAP="127.0.0.1:9092"
 export KAFKA_TOPIC="rawInput"
 

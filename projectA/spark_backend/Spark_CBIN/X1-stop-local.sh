@@ -6,5 +6,4 @@
 ../sbin/stop-master.sh
 
 rm -rf /tmp/spark-events
-rm -rf /tmp/checkpoint
-rm -rf /tmp/noise_data
+rm -rf /tmp/cleaning_enrichment
