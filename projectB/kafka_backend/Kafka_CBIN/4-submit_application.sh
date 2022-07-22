@@ -8,7 +8,7 @@ export KAFKA_IN_TOPIC="completedJobs"
 export JOB_FILE_PATH="./resources/"
 export JOB_FILE_NAME="job_list.json"
 export KEY_LENGTH=8
-export DEBUG_MODE=true
+export DEBUG_MODE=false
 
 ../bin/kafka-run-class.sh \
 	$MAIN_CLASS \
