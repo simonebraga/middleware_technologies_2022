@@ -1,8 +1,8 @@
 # Project A
 
 [Click here](documentation.md) to view the documentation.  
-[Click here](documentation_notes.md) to view some additional notes about the documentation.  
-[Click here](HOWTORUN.md) to view instructions on how to run the back-end software (Kafka and Spark).
+[Click here](additional_notes.md) to view some additional notes about the project.  
+[Click here](HOWTORUN.md) to view instructions on how to run the application.
 
 ### Currently working on...
 
