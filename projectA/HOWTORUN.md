@@ -1,30 +1,8 @@
-# Introduction
-
-This file contains instructions on how to correctly run the back-end modules (Kafka and Spark) outside of the IntelliJ environment.
-
-## Download packages
-
-As a first step, it is necessary to download the following .zip folders and extract them:
-
-* [Kafka_CBIN](https://polimi365-my.sharepoint.com/:u:/g/personal/10529465_polimi_it/ER5ru0lTFtZMvfoSNM808vUBr8eaz0EC551KSh8e_40E9g?e=POKY2u)
-* [Spark_CBIN](https://polimi365-my.sharepoint.com/:u:/g/personal/10529465_polimi_it/EbJIqhkMHhhLvezxg6hG5BEBXYi8SMfXU6sqsF1BE3GCzw?e=9HnzTl)
+# Kafka
 
 **NOTE: A working JVM (at least Java 11) is required to run the packages.**
 
-**NOTE: Links to the .zip folders could be outdated with respect to the code in the repository. You must have already downloaded the correct version of Kafka and Spark.**
-
-* [Kafka](https://dlcdn.apache.org/kafka/3.1.0/kafka_2.13-3.1.0.tgz)
-* [Spark](https://dlcdn.apache.org/spark/spark-3.2.1/spark-3.2.1-bin-hadoop3.2-scala2.13.tgz)
-
-## Run packages
-
-Both the folders contain useful scripts to run the environment with the correct parameters. The number pre-appended to each script name gives an indication of the order in which the scripts must be run.
-
-**NOTE: Extract each folder in the root of the relative technology (Kafka_CBIN must be in the same location of bin default Kafka folder, same for Spark_CBIN).**
-
-**NOTE: Remember that each script should be checked in order to set the correct IP of the client it is running on.**
-
-### Kafka
+The folder `Kafka_CBIN` contains the .jar file and some useful scripts to run the environment with the correct parameters. In order to work, it must be placed in the root folder of the Kafka installation (download [here](https://dlcdn.apache.org/kafka/3.1.0/kafka_2.13-3.1.0.tgz)).
 
 <p align="center">
   <img width=80% src="./resources/kafka_path.png" />
@@ -47,7 +25,11 @@ Usage `./D2-run_subscriber.sh topic_name`
 
 * `X2-clear_environment.sh` clears the system after the application is closed. Stop Kafka and Zookeeper before running this.
 
-### Spark
+# Spark
+
+**NOTE: A working JVM (at least Java 11) is required to run the packages.**
+
+The folder `Spark_CBIN` contains the .jar file and some useful scripts to run the environment with the correct parameters. In order to work, it must be placed in the root folder of the Spark installation (download [here](https://dlcdn.apache.org/spark/spark-3.2.1/spark-3.2.1-bin-hadoop3.2-scala2.13.tgz)).
 
 <p align="center">
   <img width=80% src="./resources/spark_path.png" />
@@ -61,7 +43,7 @@ Usage `./D2-run_subscriber.sh topic_name`
 
 * `X1-stop-local.sh` kill the Spark cluster. Stop the Spark streming application before running this.
 
-### Send data
+## Send data
 
 You can act like end-user applications opening a socket connection with the backend with the following command:
 
@@ -69,3 +51,98 @@ You can act like end-user applications opening a socket connection with the back
 
 Then send well-formed strings from the command line.  
 (You can open multiple instances if neeeded)
+
+# MPI
+
+**NOTE: A working installation of MPI is required.**
+
+## Usage
+
+In the `MPI_simulator` directory, the module can be compiled with `make` (a Makefile is provided).
+
+### Command line parameters
+
+The simulation parameters are provided via command line.
+**NOTE**: For now, the program accepts integer and float arguments, and arguments are required.
+
+The program accepts the following command line options:
+
+
+| Short options | Meaning                          | Type    | Example  |
+|---------------|----------------------------------|---------|----------|
+| `P`           | Number of people                 | `int`   | `-P 100` |
+| `V`           | Number of vehicles               | `int`   | `-V 10`  |
+| `W`           | Width of the region (in meters)  | `int`   | `-W 500` |
+| `L`           | Length of the region (in meters) | `int`   | `-L 300` |
+| `t`           | Time step (in seconds)           | `float` | `-t 1`   |
+
+
+
+| Long options           | Meaning                                                      | Type       | Example                            |
+|------------------------|--------------------------------------------------------------|------------|------------------------------------|
+| `Np`                   | Noise produced by every person (in dB)                       | `float`    | `--Np 2`                           |
+| `Nv`                   | Noise produced by every vehicle (in dB)                      | `float`    | `--Nv 10`                          |
+| `Dp`                   | Radius of circular area affected by a person                 | `float`    | `--Dp 2`                           |
+| `Dv`                   | Radius of circular area affected by a vehicle                | `float`    | `--Dv 10`                          |
+| `Vp`                   | Speed of a person (in m/s)                                   | `float`    | `--Vp 1`                           |
+| `Vv`                   | Speed of a vehicle (in m/s)                                  | `float`    | `--Vv 14`                          |
+| `db`                   | Activate debug prints                                        |            | `--db`                             |
+| `origin-latitude`      | Latitude coordinate (in decimal degrees) of the area origin  | `float`    | `--origin-latitude 45.890`         |
+| `origin-longitude`     | Longitude coordinate (in decimal degrees) of the area origin | `float`    | `--origin-longitude 9.0804`        |
+| `kafka-bridge-address` | IPv4 address of the Kafka producer (bridge)                  | `C string` | `--kafka-bridge-address 127.0.0.1` |
+| `kafka-bridge-port`    | Network port of the Kafka producer (bridge)                  | `int`      | `--kafka-bridge-port 9999`         |
+
+To print all the debug prints, the `db` option must be given first.
+
+The default values for the the address of the Kafka producer is `127.0.0.1:9999`.
+
+The following long option aliases are also supported:
+
+| Long alias          | Short option |
+|---------------------|--------------|
+| `n-of-people`       | `P`          |
+| `n-of-vehicles`     | `V`          |
+| `width-of-region`   | `W`          |
+| `length-of-region`  | `L`          |
+| `noise-per-person`  | `Np`         |
+| `moise-per-vehicle` | `Nv`         |
+| `radius-of-person`  | `Dp`         |
+| `radius-of-vehicle` | `Dv`         |
+| `speed-of-person`   | `Vp`         |
+| `speed-of-vehicle`  | `Vv`         |
+| `debug`             | `db`         |
+
+The "radius" of a person vehicle is intended as half the side of a square area. For instance, in the picture:
+
+```text
+          ---------
+      ---/         \---
+     /                 \
+   -/                   \-
+  /                       \
+  |                       |
+ /                   r     \
+ |            P-------------|
+ \                         /
+  |                       |
+  \                       /
+   -\                   /-
+     \                 /
+      ---\         /---
+          ---------
+```
+
+The `P` represents a person, and the radius is `r` (calculated as euclidean distance).
+
+### Convenience scripts
+
+Three scripts are provided to quickly run the program:
+  * `quickrun.sh` executes the simulation "clean", multithreaded
+  * `debug.sh` executes the simulation multithreaded, with the debug flag
+  * `single-thread` executes the simulation as a normal program, single-threaded and with the debug flag
+
+# Contiki-NG
+
+**NOTE: Contiki-NG toolchain and Cooja simulator are required.**
+
+In order to work, the folder `rpl-udp` must replace its homonym inside the `examples` folder of [this](https://bitbucket.org/neslabpolimi/contiki-ng-mw-2122.git) repository.
