@@ -9,7 +9,7 @@ The purpose is to develop in a group a set of assigned projects and make use of 
 
 ### How did we use every technology?
 
-| Technology | [Project A](projectA) | [Project B](projectB) | Demo |
+| Technology | [Project A](projectA) | [Project B](projectB) | [Demo](Demo) |
 |:-|:-:|:-:|:-:|
 | Akka | | X | |
 | Kafka | X | X | |

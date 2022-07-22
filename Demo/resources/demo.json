@@ -1,0 +1,317 @@
+[
+    {
+        "id": "921761a546019513",
+        "type": "tab",
+        "label": "Demo",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "acb8b07821b7cf43",
+        "type": "function",
+        "z": "921761a546019513",
+        "name": "avg temperature for next 24h",
+        "func": "var avg=0;\nfor(i=0; i<8;i++){\n    avg+=msg.payload[i].main.temp;\n}\navg=avg/8;\nmsg.payload=avg;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 780,
+        "y": 360,
+        "wires": [
+            [
+                "6ef495ef7441c4f4"
+            ]
+        ]
+    },
+    {
+        "id": "043c51a68f214f9d",
+        "type": "inject",
+        "z": "921761a546019513",
+        "name": "5 min loop",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "T",
+                "v": "T",
+                "vt": "flow"
+            }
+        ],
+        "repeat": "300",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "1",
+        "topic": "",
+        "payload": "cityCountry",
+        "payloadType": "flow",
+        "x": 110,
+        "y": 360,
+        "wires": [
+            [
+                "94debd22210298cd"
+            ]
+        ]
+    },
+    {
+        "id": "6ef495ef7441c4f4",
+        "type": "function",
+        "z": "921761a546019513",
+        "name": "Treshold check",
+        "func": "var T= parseInt(flow.get('T'));\nif(msg.payload>T) msg.payload=1;\nelse msg.payload=0;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1000,
+        "y": 360,
+        "wires": [
+            [
+                "84367650d54ef2b7"
+            ]
+        ]
+    },
+    {
+        "id": "84367650d54ef2b7",
+        "type": "mqtt out",
+        "z": "921761a546019513",
+        "name": "Publish message",
+        "topic": " /home1/heating ",
+        "qos": "2",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "1bf5616eebadf715",
+        "x": 1190,
+        "y": 360,
+        "wires": []
+    },
+    {
+        "id": "6716e882e07c5c95",
+        "type": "mqtt in",
+        "z": "921761a546019513",
+        "name": "Check message",
+        "topic": " /home1/heating ",
+        "qos": "2",
+        "datatype": "auto",
+        "broker": "1bf5616eebadf715",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 180,
+        "y": 520,
+        "wires": [
+            [
+                "5a7acd217399561d"
+            ]
+        ]
+    },
+    {
+        "id": "5a7acd217399561d",
+        "type": "debug",
+        "z": "921761a546019513",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 370,
+        "y": 520,
+        "wires": []
+    },
+    {
+        "id": "2065efc6afd0d032",
+        "type": "file in",
+        "z": "921761a546019513",
+        "name": "Read settings file",
+        "filename": "",
+        "format": "utf8",
+        "chunk": false,
+        "sendError": false,
+        "encoding": "none",
+        "allProps": false,
+        "x": 410,
+        "y": 120,
+        "wires": [
+            [
+                "9251d5ebf5c19c84"
+            ]
+        ]
+    },
+    {
+        "id": "aa20b3d7f3ebf84d",
+        "type": "inject",
+        "z": "921761a546019513",
+        "name": "Set flow var",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payloadType": "date",
+        "x": 170,
+        "y": 120,
+        "wires": [
+            [
+                "2065efc6afd0d032"
+            ]
+        ]
+    },
+    {
+        "id": "9251d5ebf5c19c84",
+        "type": "function",
+        "z": "921761a546019513",
+        "name": "Parse settings",
+        "func": "var s= msg.payload.split(\"\\n\");\n//var cityMsg = { payload: s[0].concat(\",\").concat(s[1])};\n//var tresholdMsg = { payload: \"a\".concat(s[2])};\n\nflow.treshold=s[2];\nvar newMsg={payload: s[2]};\nmsg.payload=[s[0],s[1]];\nreturn [msg,newMsg];\n//return [cityMsg,tresholdMsg];",
+        "outputs": 2,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 620,
+        "y": 120,
+        "wires": [
+            [
+                "df90a8126ac17803"
+            ],
+            [
+                "b78ced756354c205"
+            ]
+        ]
+    },
+    {
+        "id": "94debd22210298cd",
+        "type": "function",
+        "z": "921761a546019513",
+        "name": "Parse input for openWeatherMap",
+        "func": "var s=msg.payload;\n//const g=s.split(\",\");\n\nvar newMsg= {location:{city:s[0], country:s[1]}};\nreturn newMsg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 340,
+        "y": 360,
+        "wires": [
+            [
+                "4c0e049f09d14c53"
+            ]
+        ]
+    },
+    {
+        "id": "df90a8126ac17803",
+        "type": "change",
+        "z": "921761a546019513",
+        "name": "Set city / country name",
+        "rules": [
+            {
+                "t": "set",
+                "p": "cityCountry",
+                "pt": "flow",
+                "to": "payload",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 880,
+        "y": 80,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "b78ced756354c205",
+        "type": "change",
+        "z": "921761a546019513",
+        "name": "Set treshold T",
+        "rules": [
+            {
+                "t": "set",
+                "p": "T",
+                "pt": "flow",
+                "to": "payload",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 860,
+        "y": 160,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "4c0e049f09d14c53",
+        "type": "openweathermap",
+        "z": "921761a546019513",
+        "name": "Get forecast",
+        "wtype": "forecast",
+        "lon": "",
+        "lat": "",
+        "city": "",
+        "country": "",
+        "language": "en",
+        "credentials": {},
+        "x": 570,
+        "y": 360,
+        "wires": [
+            [
+                "acb8b07821b7cf43"
+            ]
+        ]
+    },
+    {
+        "id": "1bf5616eebadf715",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "mqtt.neslab.it",
+        "port": "3200",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "sessionExpiry": ""
+    }
+]
