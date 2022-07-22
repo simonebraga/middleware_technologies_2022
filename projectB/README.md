@@ -1,7 +1,7 @@
 # Project B
 
 [Click here](documentation.md) to view the documentation.  
-[Click here](HOWTORUN.md) to view instructions on how to run the front-end software (Kafka).
+[Click here](HOWTORUN.md) to view instructions on how to run the application.
 
 ### Currently working on...
 
