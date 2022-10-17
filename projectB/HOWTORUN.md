@@ -2,7 +2,7 @@
 
 **NOTE: A working JVM (at least Java 11) is required to run the packages.**
 
-The folder `Kafka_CBIN` contains the .jar file and some useful scripts to run the environment with the correct parameters. In order to work, it must be placed in the root folder of the Kafka installation (download [here](https://dlcdn.apache.org/kafka/3.1.0/kafka_2.13-3.1.0.tgz)).
+The folder `Kafka_CBIN` contains the .jar file and some useful scripts to run the environment with the correct parameters. In order to work, it must be placed in the root folder of the Kafka installation (download [here](https://archive.apache.org/dist/kafka/3.1.0/kafka_2.13-3.1.0.tgz)).
 
 <p align="center">
   <img width=80% src="./resources/kafka_path.png" />

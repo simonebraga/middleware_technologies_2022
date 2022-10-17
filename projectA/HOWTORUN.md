@@ -2,7 +2,7 @@
 
 **NOTE: A working JVM (at least Java 11) is required to run the packages.**
 
-The folder `Kafka_CBIN` contains the .jar file and some useful scripts to run the environment with the correct parameters. In order to work, it must be placed in the root folder of the Kafka installation (download [here](https://dlcdn.apache.org/kafka/3.1.0/kafka_2.13-3.1.0.tgz)).
+The folder `Kafka_CBIN` contains the .jar file and some useful scripts to run the environment with the correct parameters. In order to work, it must be placed in the root folder of the Kafka installation (download [here](https://archive.apache.org/dist/kafka/3.1.0/kafka_2.13-3.1.0.tgz)).
 
 <p align="center">
   <img width=80% src="./resources/kafka_path.png" />
@@ -29,7 +29,7 @@ Usage `./D2-run_subscriber.sh topic_name`
 
 **NOTE: A working JVM (at least Java 11) is required to run the packages.**
 
-The folder `Spark_CBIN` contains the .jar file and some useful scripts to run the environment with the correct parameters. In order to work, it must be placed in the root folder of the Spark installation (download [here](https://dlcdn.apache.org/spark/spark-3.2.1/spark-3.2.1-bin-hadoop3.2-scala2.13.tgz)).
+The folder `Spark_CBIN` contains the .jar file and some useful scripts to run the environment with the correct parameters. In order to work, it must be placed in the root folder of the Spark installation (download [here](https://archive.apache.org/dist/spark/spark-3.2.1/spark-3.2.1-bin-hadoop3.2-scala2.13.tgz)).
 
 <p align="center">
   <img width=80% src="./resources/spark_path.png" />
@@ -145,4 +145,5 @@ Three scripts are provided to quickly run the program:
 
 **NOTE: Contiki-NG toolchain and Cooja simulator are required.**
 
-In order to work, the folder `rpl-udp` must replace its homonym inside the `examples` folder of [this](https://bitbucket.org/neslabpolimi/contiki-ng-mw-2122.git) repository.
+In order to work, the folder `rpl-udp` must replace its homonym inside the `examples` folder of [this](https://bitbucket.org/neslabpolimi/contiki-ng-mw-2122.git) repository.  
+Once you download the repository, pull the submodules with `git submodule update --init --recursive`.
