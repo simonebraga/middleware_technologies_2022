@@ -1,0 +1,7 @@
+ZONE 1
+x_min=2.8	x_max=22.6
+y_min=32.0	y_max=54.1
+
+ZONE 2
+x_min=26.1	x_max=40.3
+y_min=3.1	y_max=18.0
